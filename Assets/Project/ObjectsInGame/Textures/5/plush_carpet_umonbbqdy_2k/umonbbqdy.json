@@ -1,0 +1,646 @@
+{
+  "assetCategories": {
+    "surface": {
+      "fabric": {
+        "carpet": {}
+      }
+    }
+  },
+  "averageColor": "#000000",
+  "categories": [
+    "surface",
+    "other",
+    "various"
+  ],
+  "comp_version": 1,
+  "description": "",
+  "displacementBias": 0.58847,
+  "displacementCalibrationAccuracy": 0.848772,
+  "displacementScale": 0.493828,
+  "environment": {
+    "biome": "undefined",
+    "region": "Europe"
+  },
+  "highest_available_res": 8192,
+  "id": "umonbbqdy",
+  "json": {
+    "contentLength": 14151,
+    "uri": "umonbbqdy.json"
+  },
+  "maps": [
+    {
+      "averageColor": "#8F8F8F",
+      "bitDepth": 32,
+      "colorSpace": "sRGB",
+      "contentLength": 131771191,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 28,
+      "name": "AO",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "ao",
+      "uri": "umonbbqdy_8K_AO.exr"
+    },
+    {
+      "averageColor": "#8F8F8F",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 52790895,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 28,
+      "name": "AO",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "ao",
+      "uri": "umonbbqdy_8K_AO.jpg"
+    },
+    {
+      "averageColor": "#41403E",
+      "bitDepth": 16,
+      "colorSpace": "sRGB",
+      "contentLength": 242010217,
+      "maxIntensity": 101,
+      "mimeType": "image/x-exr",
+      "minIntensity": 30,
+      "name": "Basecolor",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "basecolor",
+      "uri": "umonbbqdy_8K_Basecolor.exr"
+    },
+    {
+      "averageColor": "#41403E",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 46973452,
+      "maxIntensity": 101,
+      "mimeType": "image/jpeg",
+      "minIntensity": 30,
+      "name": "Basecolor",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "basecolor",
+      "uri": "umonbbqdy_8K_Basecolor.jpg"
+    },
+    {
+      "averageColor": "#808080",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 211938348,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 0,
+      "name": "Bump",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "bump",
+      "uri": "umonbbqdy_8K_Bump.exr"
+    },
+    {
+      "averageColor": "#808080",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 29710173,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 0,
+      "name": "Bump",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "bump",
+      "uri": "umonbbqdy_8K_Bump.jpg"
+    },
+    {
+      "averageColor": "#D2D2D2",
+      "bitDepth": 32,
+      "colorSpace": "sRGB",
+      "contentLength": 135352505,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 173,
+      "name": "Cavity",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "cavity",
+      "uri": "umonbbqdy_8K_Cavity.exr"
+    },
+    {
+      "averageColor": "#D2D2D2",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 62852164,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 173,
+      "name": "Cavity",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "cavity",
+      "uri": "umonbbqdy_8K_Cavity.jpg"
+    },
+    {
+      "averageColor": "#7F7F7F",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 267655985,
+      "maxIntensity": 154,
+      "mimeType": "image/x-exr",
+      "minIntensity": 94,
+      "name": "Displacement",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "displacement",
+      "uri": "umonbbqdy_8K_Displacement.exr"
+    },
+    {
+      "averageColor": "#7F7F7F",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 10596992,
+      "maxIntensity": 154,
+      "mimeType": "image/jpeg",
+      "minIntensity": 94,
+      "name": "Displacement",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "displacement",
+      "uri": "umonbbqdy_8K_Displacement.jpg"
+    },
+    {
+      "averageColor": "#777777",
+      "bitDepth": 16,
+      "colorSpace": "Linear",
+      "contentLength": 268372336,
+      "maxIntensity": 181,
+      "mimeType": "image/x-exr",
+      "minIntensity": 49,
+      "name": "Fuzz",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "fuzz",
+      "uri": "umonbbqdy_8K_Fuzz.exr"
+    },
+    {
+      "averageColor": "#777777",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 55300146,
+      "maxIntensity": 181,
+      "mimeType": "image/jpeg",
+      "minIntensity": 49,
+      "name": "Fuzz",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "fuzz",
+      "uri": "umonbbqdy_8K_Fuzz.jpg"
+    },
+    {
+      "averageColor": "#262626",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 126833045,
+      "maxIntensity": 85,
+      "mimeType": "image/x-exr",
+      "minIntensity": 0,
+      "name": "Gloss",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "gloss",
+      "uri": "umonbbqdy_8K_Gloss.exr"
+    },
+    {
+      "averageColor": "#262626",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 44127467,
+      "maxIntensity": 85,
+      "mimeType": "image/jpeg",
+      "minIntensity": 0,
+      "name": "Gloss",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "gloss",
+      "uri": "umonbbqdy_8K_Gloss.jpg"
+    },
+    {
+      "averageColor": "#8088DB",
+      "bitDepth": 16,
+      "colorSpace": "Linear",
+      "contentLength": 244158746,
+      "maxIntensity": 214,
+      "mimeType": "image/x-exr",
+      "minIntensity": 70,
+      "name": "Normal",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "normal",
+      "uri": "umonbbqdy_8K_Normal.exr"
+    },
+    {
+      "averageColor": "#8088DB",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 140542284,
+      "maxIntensity": 214,
+      "mimeType": "image/jpeg",
+      "minIntensity": 70,
+      "name": "Normal",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "normal",
+      "uri": "umonbbqdy_8K_Normal.jpg"
+    },
+    {
+      "averageColor": "#D9D9D9",
+      "bitDepth": 32,
+      "colorSpace": "Linear",
+      "contentLength": 114544133,
+      "maxIntensity": 255,
+      "mimeType": "image/x-exr",
+      "minIntensity": 170,
+      "name": "Roughness",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "roughness",
+      "uri": "umonbbqdy_8K_Roughness.exr"
+    },
+    {
+      "averageColor": "#D9D9D9",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 42583941,
+      "maxIntensity": 255,
+      "mimeType": "image/jpeg",
+      "minIntensity": 170,
+      "name": "Roughness",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "roughness",
+      "uri": "umonbbqdy_8K_Roughness.jpg"
+    },
+    {
+      "averageColor": "#2E2E2E",
+      "bitDepth": 16,
+      "colorSpace": "sRGB",
+      "contentLength": 266143499,
+      "maxIntensity": 38.06,
+      "mimeType": "image/x-exr",
+      "minIntensity": 56.1,
+      "name": "Specular",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "specular",
+      "uri": "umonbbqdy_8K_Specular.exr"
+    },
+    {
+      "averageColor": "#2E2E2E",
+      "bitDepth": 8,
+      "colorSpace": "sRGB",
+      "contentLength": 45788989,
+      "maxIntensity": 38.06,
+      "mimeType": "image/jpeg",
+      "minIntensity": 56.1,
+      "name": "Specular",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "specular",
+      "uri": "umonbbqdy_8K_Specular.jpg"
+    },
+    {
+      "averageColor": "#CACACA",
+      "bitDepth": 16,
+      "colorSpace": "Linear",
+      "contentLength": 133319826,
+      "maxIntensity": 248,
+      "mimeType": "image/x-exr",
+      "minIntensity": 140,
+      "name": "Transmission",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "transmission",
+      "uri": "umonbbqdy_8K_Transmission.exr"
+    },
+    {
+      "averageColor": "#CACACA",
+      "bitDepth": 8,
+      "colorSpace": "Linear",
+      "contentLength": 16916352,
+      "maxIntensity": 248,
+      "mimeType": "image/jpeg",
+      "minIntensity": 140,
+      "name": "Transmission",
+      "physicalSize": "0.25x0.25",
+      "resolution": "8192x8192",
+      "type": "transmission",
+      "uri": "umonbbqdy_8K_Transmission.jpg"
+    }
+  ],
+  "meta": [
+    {
+      "key": "scanArea",
+      "name": "Scan Area",
+      "value": "0.25x0.25 m"
+    },
+    {
+      "key": "height",
+      "name": "Height",
+      "value": "0.047 m"
+    },
+    {
+      "key": "tileable",
+      "name": "Tileable",
+      "value": true
+    },
+    {
+      "key": "tiling_directions",
+      "name": "Tiling Directions",
+      "value": [
+        "x",
+        "y"
+      ]
+    },
+    {
+      "key": "texelDensity",
+      "name": "Texel Density",
+      "value": "32768 px/m"
+    },
+    {
+      "key": "calibration",
+      "name": "Calibration",
+      "value": "GretagMacbeth ColorChecker Color Rendition Chart"
+    },
+    {
+      "key": "scanner",
+      "name": "Scanner",
+      "value": "MKX"
+    }
+  ],
+  "models": [],
+  "name": "Plush Carpet",
+  "pack": null,
+  "physicalSize": null,
+  "points": 2,
+  "previews": {
+    "images": [
+      {
+        "contentLength": 292912,
+        "resolution": "360x360",
+        "tags": [
+          "thumb"
+        ],
+        "uri": "umonbbqdy_Grid_360.png"
+      },
+      {
+        "contentLength": 394926,
+        "resolution": "420x420",
+        "tags": [
+          "thumb"
+        ],
+        "uri": "umonbbqdy_Grid_420.png"
+      },
+      {
+        "contentLength": 1103481,
+        "resolution": "720x720",
+        "tags": [
+          "thumb",
+          "retina"
+        ],
+        "uri": "umonbbqdy_Grid_720.png"
+      },
+      {
+        "contentLength": 1545539,
+        "resolution": "840x840",
+        "tags": [
+          "thumb",
+          "retina"
+        ],
+        "uri": "umonbbqdy_Grid_840.png"
+      },
+      {
+        "contentLength": 3373731,
+        "resolution": "1440x810",
+        "tags": [
+          "preview",
+          "clay"
+        ],
+        "uri": "umonbbqdy_PopupClay_1440.png"
+      },
+      {
+        "contentLength": 6026490,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview",
+          "clay"
+        ],
+        "uri": "umonbbqdy_PopupClay_1920.png"
+      },
+      {
+        "contentLength": 13506081,
+        "resolution": "2880x1620",
+        "tags": [
+          "preview",
+          "clay",
+          "retina"
+        ],
+        "uri": "umonbbqdy_PopupClay_2880.png"
+      },
+      {
+        "contentLength": 23825583,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "clay",
+          "retina"
+        ],
+        "uri": "umonbbqdy_PopupClay_3840.png"
+      },
+      {
+        "contentLength": 3280235,
+        "resolution": "1440x810",
+        "tags": [
+          "preview",
+          "tiled"
+        ],
+        "uri": "umonbbqdy_PopupTiled_1440.png"
+      },
+      {
+        "contentLength": 5797598,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview",
+          "tiled"
+        ],
+        "uri": "umonbbqdy_PopupTiled_1920.png"
+      },
+      {
+        "contentLength": 12892813,
+        "resolution": "2880x1620",
+        "tags": [
+          "preview",
+          "tiled",
+          "retina"
+        ],
+        "uri": "umonbbqdy_PopupTiled_2880.png"
+      },
+      {
+        "contentLength": 22924577,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "tiled",
+          "retina"
+        ],
+        "uri": "umonbbqdy_PopupTiled_3840.png"
+      },
+      {
+        "contentLength": 3246810,
+        "resolution": "1440x810",
+        "tags": [
+          "preview"
+        ],
+        "uri": "umonbbqdy_Popup_1440.png"
+      },
+      {
+        "contentLength": 5802718,
+        "resolution": "1920x1080",
+        "tags": [
+          "preview"
+        ],
+        "uri": "umonbbqdy_Popup_1920.png"
+      },
+      {
+        "contentLength": 12954791,
+        "resolution": "2880x1620",
+        "tags": [
+          "preview",
+          "retina"
+        ],
+        "uri": "umonbbqdy_Popup_2880.png"
+      },
+      {
+        "contentLength": 22832263,
+        "resolution": "3840x2160",
+        "tags": [
+          "preview",
+          "retina"
+        ],
+        "uri": "umonbbqdy_Popup_3840.png"
+      }
+    ],
+    "relativeSize": "1x1",
+    "scaleReferences": []
+  },
+  "process_date": "2024-04-17 00:53:25",
+  "properties": [],
+  "referencePreviews": {
+    "maps": [],
+    "models": []
+  },
+  "references": [],
+  "revised": false,
+  "revision": 0,
+  "semanticTags": {
+    "architectural_style": {},
+    "asset_type": "surface",
+    "city": "Stockholm",
+    "color": [
+      "Gray"
+    ],
+    "contains": [
+      "Carpet",
+      "fabric",
+      "plush"
+    ],
+    "country": "Sweden",
+    "descriptive": [
+      "plush",
+      "decorative",
+      "smooth",
+      "thick"
+    ],
+    "environment": [
+      "urban"
+    ],
+    "industry": [
+      "games",
+      "archviz",
+      "VFX"
+    ],
+    "interior_exterior": [
+      "interior"
+    ],
+    "locations": {
+      "Europe": {
+        "Sweden": {
+          "Stockholm": {}
+        }
+      }
+    },
+    "maxSize": 0.25,
+    "minSize": 0.25,
+    "name": "Plush Carpet",
+    "orientation": [
+      "floor"
+    ],
+    "region": "Europe",
+    "resolution": 8192,
+    "state": [
+      "old"
+    ],
+    "subject_matter": "manmade",
+    "theme": [
+      "Interior",
+      "house",
+      "floor",
+      "flooring"
+    ]
+  },
+  "tags": [
+    "gray",
+    "interior",
+    "decor",
+    "carpet",
+    "threads",
+    "fabric",
+    "floor"
+  ],
+  "texelDensity": 32768,
+  "texture_type": "basic",
+  "ue_plugin_archives": [
+    {
+      "contentLength": 430828975,
+      "gltfVersion": "2.0",
+      "tier": 0,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_0/umonbbqdy_tier_0.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 136430494,
+      "gltfVersion": "2.0",
+      "tier": 1,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_1/umonbbqdy_tier_1.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 32443726,
+      "gltfVersion": "2.0",
+      "tier": 2,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_2/umonbbqdy_tier_2.zip",
+      "version": 1
+    },
+    {
+      "contentLength": 3439706,
+      "gltfVersion": "2.0",
+      "tier": 3,
+      "type": "gltf",
+      "uri": "ue_plugin_archives/tier_3/umonbbqdy_tier_3.zip",
+      "version": 1
+    }
+  ],
+  "version": 2
+}

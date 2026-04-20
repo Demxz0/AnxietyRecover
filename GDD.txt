@@ -1,0 +1,187 @@
+Game Design
+Document
+(GDD)
+Anxiety Recover
+By Dema Aljundi
+Game Overview
+Game Title: Anxiety Recover.
+Genre:  Psychological simulation / Puzzle / Narrative. 
+Platform(s):  On Ujleek website exclusively , on all browsers.
+Target Audience: Generation Z.
+Game Description: Anxiety Recover game will help generation Z to learn how to deal with anxiety 
+with CBT , medications and exposure through challenges , and calming techniques.
+Perspective: First Person.
+Game Systems
+Anxiety System
+The core system of the game is the Anxiety Meter, represented by a UI bar.
+Anxiety Levels
+The system contains four stages:
+1.  Calm
+2.  Mild Anxiety
+3.  High Anxiety
+4.  Panic
+When the anxiety meter reaches its maximum value, a panic attack may occur.
+However, panic attacks can also occur randomly, reflecting the unpredictable nature of real 
+panic attacks.
+Anxiety Triggers
+
+The anxiety meter increases due to several factors:
+darkness
+time pressure
+disturbing sounds
+staying alone in a room for too long
+environmental challenges
+random spikes
+Reducing Anxiety
+Anxiety does not decrease automatically.
+It can only decrease through specific player actions:
+performing the breathing exercise
+solving challenges
+interacting with calming elements
+Panic Attack System
+When a panic attack begins:
+the camera shakes
+the player’s field of vision narrows
+breathing sounds become loud
+heartbeat becomes rapid
+visual distortions appear on the screen
+If the player fails to calm down:
+the screen fades to black
+the character loses consciousness
+the player wakes up in the same location
+This avoids a traditional Game Over, reinforcing the idea that panic attacks are not dangerous.
+Breathing System
+The main calming mechanic is a Breathing Rhythm Mini-Game.
+During a panic attack, a circle appears on screen.
+Player interaction:
+Circle expanding → Press and hold (inhale)
+Circle shrinking → Release (exhale)
+Following the rhythm for about one minute successfully ends the panic attack and reduces 
+anxiety.
+
+Medication System
+The player has access to a limited calming medication.
+Effects:
+instantly stops a panic attack
+Penalty:
+temporarily lowers the anxiety threshold
+future panic attacks occur faster
+This encourages the player to rely more on breathing techniques instead of medication.
+Gameplay Mechanics
+Player Movement
+The player can:
+walk
+run
+explore rooms
+Interaction Mechanics
+Players can interact with the environment by:
+interacting with objects
+inspecting items
+opening drawers and cabinets
+reading written notes
+These interactions support exploration and narrative discovery.
+Environmental Interaction
+Many interactions are contextual:
+activating lights
+collecting small environmental pieces
+manipulating objects
+These interactions are used primarily to progress through the game's situations.
+Game Loop
+
+The gameplay loop follows a repeating psychological cycle.
+1. Exploration
+The player explores the house and interacts with the environment.
+2. Escalation
+Environmental triggers gradually increase the anxiety meter.
+3. Confrontation
+The player encounters one of the psychological challenges.
+Examples:
+illusion room
+looping room
+dependency challenge
+4. Resolution
+The player manages anxiety through:
+solving the situation
+performing breathing exercises
+Afterward, anxiety decreases and the player continues exploring.
+World Design
+The entire game takes place inside one house.
+The layout is consistent, the atmosphere changes based on the player's anxiety level.
+Environmental Behavior
+Rooms themselves do not physically change, but the player's perception changes through:
+lighting changes
+sound intensity
+camera effects
+visual distortions
+Key Rooms
+Illusion Room
+A dark room where the player hears voices of people.
+
+Possible actions:
+hide in another room (incorrect)
+search for the missing piece of the light switch (correct)
+Turning on the light reveals that no one is actually present.
+Loop Room
+A room where every door leads back to the same room.
+Trying to escape repeatedly increases anxiety.
+The correct solution is to stop trying to escape and wait calmly.
+After a short time, the player can exit.
+Dependency Situation
+The player initially relies on something that helps solve a challenge.
+Later, this assistance disappears.
+The player must quickly adapt and find another solution before anxiety rises too high.
+Art Style
+The game uses a low-poly visual style.
+Visual Direction
+The aesthetic is designed to feel:
+symbolic
+dreamlike
+psychological
+The environment is not intended to be realistic horror, but rather a visual representation of 
+mental states.
+Color Language
+Color plays an important symbolic role.
+Orange lighting
+represents anxiety and tension
+Blue lighting
+represents calmness and emotional balance
+
+As the player learns to manage anxiety, the house lighting gradually shifts from orange to 
+blue.
+UI / UX Design
+Anxiety Meter
+Displayed as a bar on the screen indicating the current anxiety level.
+Intrusive Thought Visualization
+Intrusive thoughts appear as:
+particle effects on the screen
+partially blocking the player's vision
+These particles represent overwhelming thoughts.
+Guidance System
+The game includes guidance by a text that:
+explains mechanics
+tells the player what to do
+And a voice explanation about anxiety, helping the player understand the situation.
+Audio Design
+Music
+The game includes background music that changes depending on anxiety level.
+calm music at low anxiety
+tense music at high anxiety
+Sound Design
+Environmental sounds contribute to tension:
+distant voices
+unsettling ambient noises
+breathing sounds
+heartbeat sounds
+Voice Design
+
+Voices heard in the game are understandable words, representing intrusive thoughts.
+A voice explans facts about anxiety in order to learn.
+Narrative Design
+The player character is anonymous, representing the player rather than a specific individual.
+This allows the experience to feel universal.
+Environmental Storytelling
+The game includes written notes scattered around the house.
+These notes provide insight into:
+anxiety
+coping mechanisms
+personal reflections and memories
