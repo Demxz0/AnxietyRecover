@@ -5,7 +5,10 @@ using TMPro;
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
-    [SerializeField] private float interactRadius = 2f;
+    [Tooltip("How far the player can reach to interact with an object.")]
+    [SerializeField] private float interactDistance = 3f; 
+    [Tooltip("How thick the ray is. Higher value makes it much easier to hit small objects on the floor.")]
+    [SerializeField] private float interactThickness = 0.3f;
     [SerializeField] private LayerMask interactableLayer;
 
     [Header("Camera Reference")]
@@ -40,18 +43,17 @@ public class PlayerInteraction : MonoBehaviour
     void Update()
     {
         DetectInteractable();
-
-        Debug.DrawRay(transform.position, Vector3.up * interactRadius, Color.yellow);
     }
 
     void DetectInteractable()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRadius, interactableLayer);
+        Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        RaycastHit hit;
 
-        if (hits.Length > 0)
+        // Using SphereCast instead of Raycast creates a "thick" cylinder, making it way easier to hit objects
+        if (Physics.SphereCast(ray, interactThickness, out hit, interactDistance, interactableLayer))
         {
-            Collider closest = GetClosest(hits);
-            IInteractable interactable = closest.GetComponent<IInteractable>();
+            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
 
             if (interactable != null)
             {
@@ -59,9 +61,14 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     _currentTarget = interactable;
                     ShowPrompt(_currentTarget.GetPromptText());
-                    Debug.Log("Found interactable: " + closest.gameObject.name);
+                    Debug.Log($"<color=green>[Interaction] Success! Pointing at: {hit.collider.gameObject.name}</color>");
                 }
                 return;
+            }
+            else
+            {
+                // THIS IS LIKELY THE BUG: It hit an object on the Interactable layer, but there is no script attached!
+                Debug.Log($"<color=orange>[Interaction] WARNING: Hit '{hit.collider.gameObject.name}' but it has NO interactable script attached! It might be blocking your ray.</color>");
             }
         }
 
@@ -72,28 +79,8 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    Collider GetClosest(Collider[] colliders)
-    {
-        Collider closest = null;
-        float minDist = Mathf.Infinity;
-
-        foreach (Collider col in colliders)
-        {
-            float dist = Vector3.Distance(transform.position, col.transform.position);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                closest = col;
-            }
-        }
-
-        return closest;
-    }
-
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        Debug.Log("E pressed — target: " + (_currentTarget != null ? _currentTarget.ToString() : "NULL"));
-
         if (_currentTarget != null)
         {
             _currentTarget.Interact();
@@ -111,9 +98,14 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (interactPromptUI) interactPromptUI.SetActive(false);
     }
+    
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, interactRadius);
+        if (_cam != null)
+        {
+            Gizmos.color = Color.green;
+            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Gizmos.DrawRay(ray.origin, ray.direction * interactDistance);
+        }
     }
 }

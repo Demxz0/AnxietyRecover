@@ -38,6 +38,7 @@ public class CanvasItemInteraction : MonoBehaviour, IInteractable
     // ─── State ────────────────────────────────────────────────────────────────
     private bool _hasInteractedOnce;
     private bool _isOpen;
+    private float _timeOpened;
 
     public bool HasInteractedOnce => _hasInteractedOnce;
     public bool IsOpen            => _isOpen;
@@ -50,8 +51,11 @@ public class CanvasItemInteraction : MonoBehaviour, IInteractable
 
     void Update()
     {
-        if (_isOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)))
+        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
+            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             CloseCanvas();
+        }
     }
 
     // ─── IInteractable ───────────────────────────────────────────────────────
@@ -86,12 +90,21 @@ public class CanvasItemInteraction : MonoBehaviour, IInteractable
         }
         itemCanvas.SetActive(true);
         _isOpen = true;
+        _timeOpened = Time.time;
+
+        MouseLook.CanLook = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     public void CloseCanvas()
     {
         if (itemCanvas != null) itemCanvas.SetActive(false);
         _isOpen = false;
+
+        MouseLook.CanLook = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     /// <summary>Force-open the canvas from another script.</summary>

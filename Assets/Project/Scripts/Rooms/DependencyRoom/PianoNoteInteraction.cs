@@ -68,6 +68,7 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     private int[] _currentValues = { 0, 0, 0, 0 };
     private bool  _isSolved;
     private bool  _isOpen;
+    private float _timeOpened;
 
     // ─── Setup ────────────────────────────────────────────────────────────────
     void Start()
@@ -89,8 +90,11 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
 
     void Update()
     {
-        if (_isOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)))
+        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
+            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             ClosePuzzle();
+        }
     }
 
     // ─── IInteractable ───────────────────────────────────────────────────────
@@ -162,13 +166,22 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     {
         SetCanvasActive(puzzleCanvas, true);
         _isOpen = true;
+        _timeOpened = Time.time;
         if (feedbackText != null) feedbackText.text = "";
+
+        MouseLook.CanLook = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     void ClosePuzzle()
     {
         SetCanvasActive(puzzleCanvas, false);
         _isOpen = false;
+
+        MouseLook.CanLook = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void SetCanvasActive(GameObject go, bool state)

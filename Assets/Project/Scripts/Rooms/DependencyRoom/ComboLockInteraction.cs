@@ -59,6 +59,7 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     private int[] _current = { 0, 0, 0 };
     private bool  _isSolved;
     private bool  _isOpen;
+    private float _timeOpened;
 
     void Start()
     {
@@ -77,8 +78,11 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
 
     void Update()
     {
-        if (_isOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)))
+        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
+            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             CloseLock();
+        }
     }
 
     public void Interact()
@@ -94,9 +98,9 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
             if (!hasAll)
             {
                 Debug.Log("[ComboLock] Not all digits found yet!");
+                OpenLock();
                 if (feedbackText != null)
                 {
-                    if (lockCanvas != null) lockCanvas.SetActive(true);
                     feedbackText.text = "You need all 3 digits first...";
                 }
                 return;
@@ -151,13 +155,22 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     {
         if (lockCanvas != null) lockCanvas.SetActive(true);
         _isOpen = true;
+        _timeOpened = Time.time;
         if (feedbackText != null) feedbackText.text = "";
+
+        MouseLook.CanLook = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     void CloseLock()
     {
         if (lockCanvas != null) lockCanvas.SetActive(false);
         _isOpen = false;
+
+        MouseLook.CanLook = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void PlaySound(AudioClip clip)

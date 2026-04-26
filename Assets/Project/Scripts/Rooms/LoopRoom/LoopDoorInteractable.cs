@@ -34,8 +34,8 @@ public class LoopDoorInteractable : MonoBehaviour, IInteractable
         _openRot   = _closedRot * Quaternion.Euler(0f, openAngle, 0f);
 
         // Auto-start the loop when the scene loads (if LoopRoomManager exists)
-        if (LoopRoomManager.Instance != null)
-            LoopRoomManager.Instance.StartLoop();
+        // REMOVED: This was causing the loop (and anxiety increase) to start as soon as the game loads!
+        // You should call LoopRoomManager.Instance.StartLoop() from a Trigger collider when the player enters the room instead.
     }
 
     public void Interact()

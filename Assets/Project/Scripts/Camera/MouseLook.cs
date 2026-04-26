@@ -35,8 +35,12 @@ public class MouseLook : MonoBehaviour
         Cursor.visible = false;
     }
 
+    public static bool CanLook = true;
+
     void Update()
     {
+        if (!CanLook) return;
+
         float mouseX = lookInput.x * sensitivityX * Time.deltaTime;
         float mouseY = lookInput.y * sensitivityY * Time.deltaTime;
 

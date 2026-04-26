@@ -27,6 +27,7 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
     [SerializeField] private AudioClip   deniedSound;
 
     private bool _isOpen;
+    private float _timeOpened;
 
     void Start()
     {
@@ -36,9 +37,12 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
 
     void Update()
     {
-        // Close any open canvas with E or Escape
-        if (_isOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)))
+        // Close any open canvas with Escape
+        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
+            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             CloseAll();
+        }
     }
 
     public void Interact()
@@ -51,6 +55,8 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
         {
             SetCanvasActive(desktopCanvas, true);
             _isOpen = true;
+            _timeOpened = Time.time;
+            UnlockCursor();
             PlaySound(unlockSound);
 
             // Notify manager the first time
@@ -66,6 +72,8 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
         {
             SetCanvasActive(lockedCanvas, true);
             _isOpen = true;
+            _timeOpened = Time.time;
+            UnlockCursor();
             PlaySound(deniedSound);
             Debug.Log("[Computer] Password required — player hasn't found the trash paper yet.");
         }
@@ -82,6 +90,21 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
         SetCanvasActive(desktopCanvas, false);
         SetCanvasActive(lockedCanvas,  false);
         _isOpen = false;
+        LockCursor();
+    }
+
+    void UnlockCursor()
+    {
+        MouseLook.CanLook = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    void LockCursor()
+    {
+        MouseLook.CanLook = true;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void SetCanvasActive(GameObject canvas, bool state)
