@@ -73,10 +73,9 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     // ─── Setup ────────────────────────────────────────────────────────────────
     void Start()
     {
-        SetCanvasActive(puzzleCanvas,  false);
+        SetCanvasActive(puzzleCanvas, false);
         SetCanvasActive(digit3Canvas,  false);
 
-        // Wire up buttons
         for (int i = 0; i < 4; i++)
         {
             int idx = i;
@@ -168,20 +167,14 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
         _isOpen = true;
         _timeOpened = Time.time;
         if (feedbackText != null) feedbackText.text = "";
-
-        MouseLook.CanLook = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        UIInputMode.Enter();
     }
 
     void ClosePuzzle()
     {
         SetCanvasActive(puzzleCanvas, false);
         _isOpen = false;
-
-        MouseLook.CanLook = true;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        UIInputMode.Exit();
     }
 
     void SetCanvasActive(GameObject go, bool state)

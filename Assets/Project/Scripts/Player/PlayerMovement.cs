@@ -21,6 +21,8 @@ public class PlayerMovement : MonoBehaviour
     /// </summary>
     public float SpeedMultiplier { get; set; } = 1f;
 
+    public static bool CanMove = true;
+
     void Awake()
     {
         input = new PlayerInputActions();
@@ -33,6 +35,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (!CanMove) return;
+
         if (controller.isGrounded && velocity.y < 0)
             velocity.y = -2f;
 

@@ -62,6 +62,7 @@ public class IllusionRoomManager : MonoBehaviour
     public bool LightIsOn        { get; private set; }
 
     private bool      _badPathTriggered;
+    private bool      _anxiausPaused;
     private Coroutine _anxietyCoroutine;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -94,24 +95,42 @@ public class IllusionRoomManager : MonoBehaviour
         Debug.Log("[IllusionRoom] Player entered — illusion active.");
     }
 
-    /// <summary>Called by BathroomManager when player hides in the bathroom.</summary>
-    public void OnPlayerHidesInBathroom()
+    // ─── Bathroom API ─────────────────────────────────────────────────────────
+
+    /// <summary>Phase 0: Player just entered bathroom — pause anxiety, silence voices.</summary>
+    public void OnPlayerEntersBathroom()
     {
         if (!IsIllusionActive) return;
         _badPathTriggered = true;
+        _anxiausPaused = true;
 
-        // Voices shift to bathroom
+        // Silence voices — the bathroom is a momentary refuge
+        SetVoicesVolume(0f);
+        Debug.Log("[IllusionRoom] BAD PATH: Player in bathroom — voices silenced, anxiety paused.");
+    }
+
+    /// <summary>Phase 1: 30s elapsed — knocking starts, voices louder, anxiety resumes fast.</summary>
+    public void OnBathroomKnockingStarts()
+    {
+        if (!IsIllusionActive) return;
+        _anxiausPaused = false;
+
+        // Voices snap back louder (muffled through door effect)
         SetVoicesVolume(voicesLoudVolume);
-        Debug.Log("[IllusionRoom] BAD PATH: Player hid in bathroom — voices louder.");
+        Debug.Log("[IllusionRoom] Knocking phase — voices louder, anxiety resuming fast.");
     }
 
     /// <summary>Called by BathroomManager when player exits bathroom after panic.</summary>
     public void OnPlayerExitsBathroom()
     {
-        // Voices return to bedroom
+        _anxiausPaused = false;
+        // Voices return to normal bedroom level
         SetVoicesVolume(voicesNormalVolume);
-        Debug.Log("[IllusionRoom] Player exited bathroom — voices back in bedroom.");
+        Debug.Log("[IllusionRoom] Player exited bathroom — voices back to normal.");
     }
+
+    // Keep old name as alias for backwards compat
+    public void OnPlayerHidesInBathroom() => OnPlayerEntersBathroom();
 
     /// <summary>Called by LightSwitchInteraction when the switch is activated.</summary>
     public void OnLightTurnedOn()
@@ -148,7 +167,8 @@ public class IllusionRoomManager : MonoBehaviour
     {
         while (IsIllusionActive)
         {
-            if (AnxietyManager.Instance != null)
+            // Respect the bathroom safe-window pause
+            if (!_anxiausPaused && AnxietyManager.Instance != null)
                 AnxietyManager.Instance.AddAnxiety(anxietyPerSecond * Time.deltaTime);
             yield return null;
         }

@@ -1,16 +1,18 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Attach to the computer 3D object.
-/// If the player knows the password → shows the desktop canvas (Digit 2).
-/// If not → shows a "password required" message canvas.
+/// The locked canvas shows a password input field.
+/// Player types the password from the trash paper and hits Enter or Submit.
+/// Correct → desktop canvas opens. Wrong → error message shown.
 ///
 /// SETUP:
 ///   1. Attach to the computer monitor/screen mesh.
-///   2. Assign 'desktopCanvas' — a canvas showing the computer screen with Digit 2.
-///   3. Assign 'lockedCanvas'  — a canvas showing "Password Required" (can be same or different canvas).
-///   4. Add CanvasItemInteraction as a SEPARATE component only if you want generic examine.
-///      This script handles its own Interact() logic.
+///   2. Assign 'desktopCanvas' — shown when unlocked.
+///   3. Assign 'lockedCanvas'  — shown with the InputField to type the password.
+///   4. Inside 'lockedCanvas' assign: passwordInput (InputField), submitPasswordButton (Button),
+///      feedbackText (Text).
 /// </summary>
 public class ComputerInteraction : MonoBehaviour, IInteractable
 {
@@ -18,8 +20,21 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
     [Tooltip("Canvas shown when computer is successfully unlocked (shows Digit 2).")]
     [SerializeField] private GameObject desktopCanvas;
 
-    [Tooltip("Canvas shown when player doesn't know the password yet.")]
+    [Tooltip("Canvas shown for the password login screen.")]
     [SerializeField] private GameObject lockedCanvas;
+
+    [Header("Password UI (inside lockedCanvas)")]
+    [Tooltip("InputField where the player types the password.")]
+    [SerializeField] private InputField passwordInput;
+
+    [Tooltip("Button to submit the password.")]
+    [SerializeField] private Button submitPasswordButton;
+
+    [Tooltip("Feedback text for wrong password.")]
+    [SerializeField] private Text feedbackText;
+
+    [Tooltip("The exact password shown on the trash paper.")]
+    [SerializeField] private string correctPassword = "YouGotThis123";
 
     [Header("Audio (optional)")]
     [SerializeField] private AudioSource audioSource;
@@ -29,82 +44,119 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
     private bool _isOpen;
     private float _timeOpened;
 
+    // ─── Setup ───────────────────────────────────────────────────────────────
+
     void Start()
     {
         SetCanvasActive(desktopCanvas, false);
         SetCanvasActive(lockedCanvas,  false);
+
+        // Wire submit button
+        if (submitPasswordButton != null)
+            submitPasswordButton.onClick.AddListener(CheckPassword);
+
+        // Wire InputField's native Submit event (fires on Enter key)
+        if (passwordInput != null)
+            passwordInput.onSubmit.AddListener(_ => CheckPassword());
     }
+
+    // ─── Update ───────────────────────────────────────────────────────────────
 
     void Update()
     {
-        // Close any open canvas with Escape
-        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
-            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+        // Escape closes any open canvas — we read raw keyboard because the
+        // Player action map is disabled while IsInUI.
+        if (_isOpen && Time.time - _timeOpened > 0.1f
+            && UnityEngine.InputSystem.Keyboard.current != null
+            && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             CloseAll();
         }
     }
 
+    // ─── IInteractable ───────────────────────────────────────────────────────
+
     public void Interact()
     {
         if (_isOpen) { CloseAll(); return; }
 
-        bool knowsPassword = GameStateManager.Instance != null && GameStateManager.Instance.KnowsPassword;
+        bool isUnlocked = GameStateManager.Instance != null && GameStateManager.Instance.ComputerUnlocked;
 
-        if (knowsPassword)
+        if (isUnlocked)
         {
             SetCanvasActive(desktopCanvas, true);
             _isOpen = true;
             _timeOpened = Time.time;
-            UnlockCursor();
+            UIInputMode.Enter();
             PlaySound(unlockSound);
-
-            // Notify manager the first time
-            if (GameStateManager.Instance != null && !GameStateManager.Instance.ComputerUnlocked)
-            {
-                GameStateManager.Instance.SetComputerUnlocked();
-                if (DependencyRoomManager.Instance != null)
-                    DependencyRoomManager.Instance.OnComputerAccessed();
-                Debug.Log("[Computer] Desktop unlocked — Digit 2 (2) revealed.");
-            }
         }
         else
         {
             SetCanvasActive(lockedCanvas, true);
             _isOpen = true;
             _timeOpened = Time.time;
-            UnlockCursor();
-            PlaySound(deniedSound);
-            Debug.Log("[Computer] Password required — player hasn't found the trash paper yet.");
+            UIInputMode.Enter();
+
+            if (passwordInput != null)
+            {
+                passwordInput.text = "";
+                // Defer ActivateInputField by one frame so the canvas is
+                // fully visible before Unity focuses the field.
+                StartCoroutine(ActivateInputNextFrame());
+            }
+            if (feedbackText != null) feedbackText.text = "";
         }
     }
 
     public string GetPromptText()
     {
-        bool knows = GameStateManager.Instance != null && GameStateManager.Instance.KnowsPassword;
-        return knows ? "Use Computer" : "Computer (Locked)";
+        bool isUnlocked = GameStateManager.Instance != null && GameStateManager.Instance.ComputerUnlocked;
+        return isUnlocked ? "Use Computer" : "Login to Computer";
     }
+
+    // ─── Password Logic ───────────────────────────────────────────────────────
+
+    void CheckPassword()
+    {
+        if (passwordInput == null) return;
+
+        if (passwordInput.text.Trim() == correctPassword)
+        {
+            SetCanvasActive(lockedCanvas, false);
+            SetCanvasActive(desktopCanvas, true);
+            PlaySound(unlockSound);
+
+            if (GameStateManager.Instance != null && !GameStateManager.Instance.ComputerUnlocked)
+            {
+                GameStateManager.Instance.SetComputerUnlocked();
+                if (DependencyRoomManager.Instance != null)
+                    DependencyRoomManager.Instance.OnComputerAccessed();
+                Debug.Log("[Computer] Desktop unlocked — password correct!");
+            }
+        }
+        else
+        {
+            PlaySound(deniedSound);
+            if (feedbackText != null) feedbackText.text = "Incorrect Password";
+            if (passwordInput != null) passwordInput.ActivateInputField();
+            Debug.Log("[Computer] Wrong password entered.");
+        }
+    }
+
+    // ─── Canvas Control ───────────────────────────────────────────────────────
 
     void CloseAll()
     {
         SetCanvasActive(desktopCanvas, false);
         SetCanvasActive(lockedCanvas,  false);
         _isOpen = false;
-        LockCursor();
+        UIInputMode.Exit();
     }
 
-    void UnlockCursor()
+    System.Collections.IEnumerator ActivateInputNextFrame()
     {
-        MouseLook.CanLook = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
-
-    void LockCursor()
-    {
-        MouseLook.CanLook = true;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        yield return null;
+        if (passwordInput != null) passwordInput.ActivateInputField();
     }
 
     void SetCanvasActive(GameObject canvas, bool state)

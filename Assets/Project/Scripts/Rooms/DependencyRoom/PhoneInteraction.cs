@@ -27,7 +27,7 @@ public class PhoneInteraction : MonoBehaviour, IInteractable
     {
         if (DependencyRoomManager.Instance == null) return "Pick Up Phone";
 
-        return DependencyRoomManager.Instance.CurrentStage == DependencyRoomManager.Stage.PhoneBusy
+        return DependencyRoomManager.Instance.CurrentStage >= DependencyRoomManager.Stage.PhoneBusy
             ? "Call Back"
             : "Pick Up Phone";
     }

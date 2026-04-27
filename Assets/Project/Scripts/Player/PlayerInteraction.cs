@@ -5,9 +5,7 @@ using TMPro;
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
-    [Tooltip("How far the player can reach to interact with an object.")]
-    [SerializeField] private float interactDistance = 3f; 
-    [Tooltip("How thick the ray is. Higher value makes it much easier to hit small objects on the floor.")]
+    [SerializeField] private float interactDistance = 3f;
     [SerializeField] private float interactThickness = 0.3f;
     [SerializeField] private LayerMask interactableLayer;
 
@@ -24,7 +22,6 @@ public class PlayerInteraction : MonoBehaviour
     void Awake()
     {
         _inputActions = new PlayerInputActions();
-
         if (_cam == null) _cam = Camera.main;
     }
 
@@ -42,6 +39,16 @@ public class PlayerInteraction : MonoBehaviour
 
     void Update()
     {
+        if (UIInputMode.IsInUI)
+        {
+            if (_currentTarget != null)
+            {
+                _currentTarget = null;
+                HidePrompt();
+            }
+            return;
+        }
+
         DetectInteractable();
     }
 
@@ -50,7 +57,6 @@ public class PlayerInteraction : MonoBehaviour
         Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         RaycastHit hit;
 
-        // Using SphereCast instead of Raycast creates a "thick" cylinder, making it way easier to hit objects
         if (Physics.SphereCast(ray, interactThickness, out hit, interactDistance, interactableLayer))
         {
             IInteractable interactable = hit.collider.GetComponent<IInteractable>();
@@ -61,14 +67,12 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     _currentTarget = interactable;
                     ShowPrompt(_currentTarget.GetPromptText());
-                    Debug.Log($"<color=green>[Interaction] Success! Pointing at: {hit.collider.gameObject.name}</color>");
                 }
                 return;
             }
             else
             {
-                // THIS IS LIKELY THE BUG: It hit an object on the Interactable layer, but there is no script attached!
-                Debug.Log($"<color=orange>[Interaction] WARNING: Hit '{hit.collider.gameObject.name}' but it has NO interactable script attached! It might be blocking your ray.</color>");
+                Debug.Log($"<color=orange>[Interaction] WARNING: Hit '{hit.collider.gameObject.name}' on Interactable layer but has NO interactable script!</color>");
             }
         }
 
@@ -81,11 +85,16 @@ public class PlayerInteraction : MonoBehaviour
 
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        if (_currentTarget != null)
-        {
-            _currentTarget.Interact();
+        if (UIInputMode.IsInUI) return;
+        if (_currentTarget == null) return;
+
+        // Cache before Interact() — opening a canvas calls UIInputMode.Enter()
+        // which clears _currentTarget, so ShowPrompt below would crash.
+        IInteractable target = _currentTarget;
+        target.Interact();
+
+        if (!UIInputMode.IsInUI && _currentTarget != null)
             ShowPrompt(_currentTarget.GetPromptText());
-        }
     }
 
     void ShowPrompt(string text)
@@ -98,7 +107,7 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (interactPromptUI) interactPromptUI.SetActive(false);
     }
-    
+
     void OnDrawGizmosSelected()
     {
         if (_cam != null)

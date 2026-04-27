@@ -85,8 +85,9 @@ public class DependencyRoomManager : MonoBehaviour
     /// <summary>Called by PhoneInteraction when player picks up the phone.</summary>
     public void OnPhonePickedUp()
     {
-        if (CurrentStage == Stage.PhoneBusy)
+        if (CurrentStage >= Stage.PhoneBusy)
         {
+            Debug.Log("the number can not be reached");
             PlayBusyTone();
             return;
         }

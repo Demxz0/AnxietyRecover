@@ -148,6 +148,9 @@ public class BreathingSystem : MonoBehaviour
 
     void Update()
     {
+        // Do not process breathing input while any UI canvas is open.
+        if (UIInputMode.IsInUI) return;
+
         Keyboard kb = Keyboard.current;
         Mouse mouse = Mouse.current;
         if (kb == null || mouse == null) return;

@@ -1,165 +1,309 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
-/// Loop Room (Kitchen) — Agoraphobia simulation.
+/// Expanding Room (Kitchen) — Agoraphobia simulation.
 ///
 /// HOW IT WORKS:
-///   - The player is trapped in the kitchen for a set duration (default: 60s).
-///   - Every time the player tries to open the exit door, they are teleported back
-///     to the room's respawn point — the loop effect.
-///   - A slow, continuous anxiety increase runs during the wait to encourage breathing.
-///   - After the wait time, the exit unlocks and the room is marked complete.
-///   - On completion, an event fires that the Open Room listens to (to turn on its lights).
+///   The illusion of a stretching room is created PURELY through camera/post-processing
+///   effects — the geometry is never touched, so the shared house walls stay intact.
+///
+///   Effects that ramp up as the player stays in the kitchen:
+///     • FOV narrows  (makes the far end look farther away — the Vertigo/dolly-zoom feel)
+///     • Lens distortion increases (warps the perceived space)
+///     • Chromatic aberration intensifies (color fringing = "reality breaking")
+///     • Vignette darkens (tunnel-vision pressure)
+///     • Player movement speed drastically slows (wet-cement feel)
+///
+///   The ONLY way to reverse it:
+///     Stand completely still → complete breathing cycles (F inhale / G exhale).
+///     Each completed cycle rolls the effect back incrementally.
+///     After enough cycles the effect is fully gone and the room is marked complete.
 ///
 /// SETUP:
 ///   1. Attach to a Manager GameObject in the Kitchen.
-///   2. Set the exit door reference — the script intercepts the door's normal Interact().
-///      Instead of using DoorController on the exit door, put LoopDoorInteractable on it.
-///   3. Assign the player respawn point Transform (a position inside the kitchen).
-///   4. Assign the player Transform (or tag it "Player").
-///   5. Optional: Assign an AudioSource for a looping ambient clock/tension sound.
+///   2. Assign mainCamera (or let it auto-find Camera.main).
+///   3. Create a Global Volume in the scene with a Volume Profile that contains:
+///        • Lens Distortion
+///        • Chromatic Aberration
+///        • Vignette
+///      Assign that Volume to the "Post Process Volume" field.
+///   4. Assign playerMovement (or tag the player "Player").
+///   5. Add a BoxCollider (IsTrigger) + LoopRoomEntryTrigger on the kitchen doorway.
 /// </summary>
 public class LoopRoomManager : MonoBehaviour
 {
     public static LoopRoomManager Instance { get; private set; }
 
-    [Header("Loop Settings")]
-    [Tooltip("How many seconds the player must wait before the loop ends.")]
-    [SerializeField] private float loopDuration = 60f;
+    // ─── Inspector ────────────────────────────────────────────────────────────
 
-    [Tooltip("Spawn point inside the kitchen the player is returned to.")]
-    [SerializeField] private Transform respawnPoint;
+    [Header("Camera")]
+    [Tooltip("Main camera. Auto-finds Camera.main if not set.")]
+    [SerializeField] private Camera mainCamera;
 
-    [Tooltip("The player's CharacterController or Transform. Tag the player 'Player'.")]
-    [SerializeField] private Transform playerTransform;
+    [Tooltip("Normal camera FOV (should match your camera's default).")]
+    [SerializeField] private float normalFOV = 60f;
+
+    [Tooltip("FOV at maximum effect. Lower = more claustrophobic tunnel-vision.")]
+    [SerializeField] private float distortedFOV = 44f;
+
+    [Header("Post-Processing Volume")]
+    [Tooltip("A Global Volume in the scene whose Profile has LensDistortion, " +
+             "ChromaticAberration, and Vignette components. " +
+             "Their weights will be driven at runtime.")]
+    [SerializeField] private Volume postProcessVolume;
+
+    [Tooltip("Maximum lens distortion intensity at full effect. Negative = barrel distortion.")]
+    [SerializeField] [Range(-1f, 0f)] private float maxLensDistortion = -0.4f;
+
+    [Tooltip("Maximum chromatic aberration intensity at full effect (0–1).")]
+    [SerializeField] [Range(0f, 1f)] private float maxChromaticAberration = 0.6f;
+
+    [Tooltip("Maximum vignette intensity at full effect (0–1).")]
+    [SerializeField] [Range(0f, 0.8f)] private float maxVignette = 0.55f;
+
+    [Header("Player Movement Slowdown")]
+    [Tooltip("PlayerMovement component. Auto-found via 'Player' tag if not set.")]
+    [SerializeField] private PlayerMovement playerMovement;
+
+    [Tooltip("Speed multiplier applied to the player at maximum effect (0.1 = 10% of normal speed).")]
+    [SerializeField] private float minSpeedMultiplier = 0.15f;
+
+    [Tooltip("How fast the player must move (CharacterController velocity) to NOT be " +
+             "considered standing still.")]
+    [SerializeField] private float standingStillThreshold = 0.05f;
+
+    [Header("Effect Ramp")]
+    [Tooltip("How fast the effect ramps up per second (0–1 progress scale).")]
+    [SerializeField] private float rampUpSpeed = 0.08f;
+
+    [Tooltip("How fast the effect reverses per second while the player is breathing correctly.")]
+    [SerializeField] private float reverseSpeed = 0.12f;
+
+    [Tooltip("Each completed breathing cycle instantly rolls back this much progress (0–1).")]
+    [SerializeField] private float recoveryPerCycle = 0.25f;
 
     [Header("Anxiety")]
-    [Tooltip("Anxiety added per second while trapped. Keep low to encourage breathing, not panic.")]
-    [SerializeField] private float anxietyPerSecond = 2f;
-
-    [Tooltip("Anxiety added each time the player tries to exit and gets looped back.")]
-    [SerializeField] private float anxietyOnLoopBack = 5f;
+    [Tooltip("Anxiety added per second while the effect is active and the player is NOT " +
+             "breathing to reverse it.")]
+    [SerializeField] private float anxietyPerSecond = 1.5f;
 
     [Header("Audio (optional)")]
-    [Tooltip("Looping ambient sound while trapped (e.g. kitchen hum, clock ticking).")]
+    [Tooltip("Looping ambient sound that plays while the effect is active.")]
     [SerializeField] private AudioSource ambientSource;
 
-    [Tooltip("Sound played each time the player is teleported back.")]
-    [SerializeField] private AudioSource loopBackSource;
-    [SerializeField] private AudioClip   loopBackSound;
-
     // ─── State ────────────────────────────────────────────────────────────────
-    public bool LoopComplete { get; private set; }
-    private float _elapsedTime;
-    private bool  _started;
+
+    /// <summary>True once the player has entered the kitchen.</summary>
+    public bool IsActive     { get; private set; }
+
+    /// <summary>True once the effect has been fully reversed through breathing.</summary>
+    public bool RoomComplete { get; private set; }
+
+    /// <summary>Effect progress: 0 = normal, 1 = maximum distortion.</summary>
+    public float EffectProgress { get; private set; }
+
+    // Post-processing overrides
+    private LensDistortion      _lensDistortion;
+    private ChromaticAberration _chromaticAberration;
+    private Vignette            _vignette;
+
+    // Breathing tracking
+    private int  _lastCycleCount;
+    private bool _isReversing;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
-    // ─── Entry ────────────────────────────────────────────────────────────────
-
-    /// <summary>Call this when the player first enters the kitchen.</summary>
-    public void StartLoop()
+    void Start()
     {
-        if (_started || LoopComplete) return;
-        _started = true;
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (playerMovement == null)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) playerMovement = p.GetComponent<PlayerMovement>();
+        }
+
+        // Grab post-processing overrides from the Volume profile
+        if (postProcessVolume != null && postProcessVolume.profile != null)
+        {
+            postProcessVolume.profile.TryGet(out _lensDistortion);
+            postProcessVolume.profile.TryGet(out _chromaticAberration);
+            postProcessVolume.profile.TryGet(out _vignette);
+        }
+
+        if (BreathingSystem.Instance != null)
+            _lastCycleCount = BreathingSystem.Instance.ConsecutiveSuccessfulCycles;
+
+        // Make sure effects are zeroed out at start
+        ApplyEffects(0f);
+    }
+
+    void Update()
+    {
+        if (!IsActive || RoomComplete) return;
+
+        // ── Detect completed breathing cycles ─────────────────────────────
+        if (BreathingSystem.Instance != null)
+        {
+            int current = BreathingSystem.Instance.ConsecutiveSuccessfulCycles;
+            if (current > _lastCycleCount)
+            {
+                int newCycles = current - _lastCycleCount;
+                _lastCycleCount = current;
+                OnBreathingCycleCompleted(newCycles);
+            }
+            else if (current < _lastCycleCount)
+            {
+                // Streak reset — stop reversing
+                _lastCycleCount = current;
+                _isReversing = false;
+            }
+        }
+
+        // ── Progress ──────────────────────────────────────────────────────
+        bool playerIsStill = IsPlayerStandingStill();
+
+        if (_isReversing && playerIsStill)
+        {
+            EffectProgress -= reverseSpeed * Time.deltaTime;
+            if (EffectProgress <= 0f)
+            {
+                EffectProgress = 0f;
+                _isReversing = false;
+                CheckCompletion();
+            }
+        }
+        else
+        {
+            // Not reversing — effect keeps ramping up
+            EffectProgress += rampUpSpeed * Time.deltaTime;
+            EffectProgress = Mathf.Clamp01(EffectProgress);
+
+            // Anxiety increases while the effect is growing and player is not breathing
+            if (AnxietyManager.Instance != null && !AnxietyManager.Instance.IsPanicActive)
+                AnxietyManager.Instance.AddAnxiety(anxietyPerSecond * Time.deltaTime);
+        }
+
+        // ── Apply everything ──────────────────────────────────────────────
+        ApplyEffects(EffectProgress);
+    }
+
+    // ─── Public API ──────────────────────────────────────────────────────────
+
+    /// <summary>Call when the player first enters the kitchen.</summary>
+    public void StartExpandingEffect()
+    {
+        if (IsActive || RoomComplete) return;
+        IsActive = true;
+
+        if (BreathingSystem.Instance != null)
+            _lastCycleCount = BreathingSystem.Instance.ConsecutiveSuccessfulCycles;
 
         if (ambientSource != null && !ambientSource.isPlaying)
             ambientSource.Play();
 
-        StartCoroutine(LoopTimerRoutine());
-        Debug.Log("[LoopRoom] Loop started — player must wait 60 seconds.");
-    }
-
-    // ─── Called by LoopDoorInteractable ──────────────────────────────────────
-
-    /// <summary>
-    /// Called whenever the player interacts with the exit door.
-    /// Returns true if the loop is over (door should open normally).
-    /// Returns false if the player should be teleported back.
-    /// </summary>
-    public bool OnPlayerTriesToExit()
-    {
-        if (LoopComplete)
-        {
-            Debug.Log("[LoopRoom] Loop over — player may exit.");
-            return true;
-        }
-
-        TeleportPlayerBack();
-        return false;
+        Debug.Log("[ExpandingRoom] Effect started — stand still and breathe to reverse it.");
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
-    IEnumerator LoopTimerRoutine()
+
+    void OnBreathingCycleCompleted(int cycles)
     {
-        while (_elapsedTime < loopDuration)
+        if (!IsPlayerStandingStill())
         {
-            _elapsedTime += Time.deltaTime;
-
-            // Gentle continuous anxiety
-            if (AnxietyManager.Instance != null && !AnxietyManager.Instance.IsPanicActive)
-                AnxietyManager.Instance.AddAnxiety(anxietyPerSecond * Time.deltaTime);
-
-            yield return null;
+            Debug.Log("[ExpandingRoom] Cycle completed but player is moving — no reversal.");
+            return;
         }
 
-        EndLoop();
+        float reduction = recoveryPerCycle * cycles;
+        EffectProgress = Mathf.Max(0f, EffectProgress - reduction);
+        _isReversing = true;
+
+        Debug.Log($"[ExpandingRoom] Breath cycle! Effect rolled back by {reduction:F2}. " +
+                  $"Progress: {EffectProgress:F2}");
     }
 
-    void TeleportPlayerBack()
+    bool IsPlayerStandingStill()
     {
-        if (playerTransform == null)
-        {
-            // Try to find by tag
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) playerTransform = p.transform;
-        }
-
-        if (playerTransform != null && respawnPoint != null)
-        {
-            // Disable CharacterController temporarily for teleport if present
-            CharacterController cc = playerTransform.GetComponent<CharacterController>();
-            if (cc != null) cc.enabled = false;
-
-            playerTransform.position = respawnPoint.position;
-
-            if (cc != null) cc.enabled = true;
-        }
-
-        // Anxiety spike
-        if (AnxietyManager.Instance != null)
-            AnxietyManager.Instance.AddAnxiety(anxietyOnLoopBack);
-
-        // Play loop-back sound
-        if (loopBackSource != null && loopBackSound != null)
-            loopBackSource.PlayOneShot(loopBackSound);
-
-        float remaining = loopDuration - _elapsedTime;
-        Debug.Log($"[LoopRoom] Player looped back. Time remaining: {remaining:F0}s.");
+        if (playerMovement == null) return true;
+        CharacterController cc = playerMovement.GetComponent<CharacterController>();
+        if (cc == null) return true;
+        float speed = new Vector3(cc.velocity.x, 0f, cc.velocity.z).magnitude;
+        return speed < standingStillThreshold;
     }
 
-    void EndLoop()
+    void ApplyEffects(float t)
     {
-        LoopComplete = true;
+        // ── FOV ───────────────────────────────────────────────────────────
+        if (mainCamera != null)
+            mainCamera.fieldOfView = Mathf.Lerp(normalFOV, distortedFOV, t);
 
-        if (ambientSource != null) ambientSource.Stop();
+        // ── Player speed ──────────────────────────────────────────────────
+        if (playerMovement != null)
+            playerMovement.SpeedMultiplier = Mathf.Lerp(1f, minSpeedMultiplier, t);
+
+        // ── Post-processing ───────────────────────────────────────────────
+        if (_lensDistortion != null)
+        {
+            _lensDistortion.active = t > 0f;
+            _lensDistortion.intensity.Override(Mathf.Lerp(0f, maxLensDistortion, t));
+        }
+
+        if (_chromaticAberration != null)
+        {
+            _chromaticAberration.active = t > 0f;
+            _chromaticAberration.intensity.Override(Mathf.Lerp(0f, maxChromaticAberration, t));
+        }
+
+        if (_vignette != null)
+        {
+            _vignette.active = t > 0f;
+            _vignette.intensity.Override(Mathf.Lerp(0f, maxVignette, t));
+        }
+    }
+
+    void CheckCompletion()
+    {
+        if (EffectProgress > 0f) return;
+
+        RoomComplete = true;
+
+        // Restore everything to normal
+        ApplyEffects(0f);
+
+        if (ambientSource != null)
+            ambientSource.Stop();
 
         GameStateManager.Instance?.CompleteLoopRoom();
-        Debug.Log("[LoopRoom] Loop COMPLETE — exit door unlocked!");
+        Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE!");
     }
 
 #if UNITY_EDITOR
-    [ContextMenu("DEBUG: Skip Loop (Complete Immediately)")]
+    [ContextMenu("DEBUG: Skip (Complete Immediately)")]
     void DebugSkip()
     {
-        _elapsedTime = loopDuration;
-        EndLoop();
+        IsActive = true;
+        EffectProgress = 0f;
+        ApplyEffects(0f);
+        CheckCompletion();
+    }
+
+    [ContextMenu("DEBUG: Force Max Effect")]
+    void DebugMaxEffect()
+    {
+        IsActive = true;
+        EffectProgress = 1f;
+        ApplyEffects(1f);
     }
 #endif
 }

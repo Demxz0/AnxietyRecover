@@ -40,7 +40,7 @@ public class LockedDoorInteraction : MonoBehaviour, IInteractable
     {
         if (doorPivot == null) doorPivot = transform;
         _closedRot = doorPivot.rotation;
-        _openRot   = _closedRot * Quaternion.Euler(0f, openAngle, 0f);
+        _openRot   = _closedRot * Quaternion.Euler(0f, 0f, openAngle);
     }
 
     public void Interact()

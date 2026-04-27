@@ -91,20 +91,14 @@ public class CanvasItemInteraction : MonoBehaviour, IInteractable
         itemCanvas.SetActive(true);
         _isOpen = true;
         _timeOpened = Time.time;
-
-        MouseLook.CanLook = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        UIInputMode.Enter();
     }
 
     public void CloseCanvas()
     {
         if (itemCanvas != null) itemCanvas.SetActive(false);
         _isOpen = false;
-
-        MouseLook.CanLook = true;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        UIInputMode.Exit();
     }
 
     /// <summary>Force-open the canvas from another script.</summary>
