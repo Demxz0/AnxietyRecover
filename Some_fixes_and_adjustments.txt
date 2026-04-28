@@ -1,0 +1,56 @@
+The hallway door , when the player first click on it and find it locked anxiety increases just one level, any click after that does not count so it does not increase anxiety.
+
+
+Every canvas of an item should close by the q key only.
+
+
+The mouse pointer in the game should only appears when the player is in an item canvas , after it closes the mouse pointer should not appear. And it can also show if the player hit esc as it is now. The circle dot in the middle of screen should change its color to red when the player ray cast hit an interactable object.
+
+
+When the phone cuts off the call , and the player try to call back by clicking on the phone again and find out that the number can not be reached any more , the anxiety should start to increase gradually until the player finds the paper in the trash it backs to mild.
+
+
+
+When the player opens the box that has the key , the key should only be selected when the player click on it and then it disappears from the box and the key icon in the screen shows.
+
+
+In the door controller i want the animation of the door opens and closes be a bit less aggressive.
+
+
+The bathroom trigger that makes the bathroom effect and logic , should be triggered only once , and this one time is when the illusion room triggers , and the player still have not placed the switch piece light in place. Meaning that if the player got in the bathroom before or after the illusion room logic , it should not be triggered and it should just act as normal room.
+
+
+If the player had a panic attack and during it , the anxiety drops , the panic attack should stop. Meaning that the panic attack only continue to happen if the anxiety is still on the max level of it.
+
+
+
+The heart beat mechanic in the breathing system i want it to be removed completely , meaning that the breathing should only be by holding f key then holding g key is it is.
+
+
+When the phone starts to ring add slight animation for it to make it shake a bit.
+
+
+
+When the panic attack occurs , if the player passes out , after that black screen , all controls off,  the player should be laying on the ground then gets up and back to game , controls on. representing an animation of wokeing up without actually having an animation. 
+
+
+The script that handles pills logic is still not following the rest input system like the rest of the scripts , fix it.
+
+
+
+There is a cookie in the kitchen , while the expand logic happens, if the player click on the cookie it should disappears and reduce two levels of anxiety. 
+
+
+The kitchen door should close on it self and once the player got in the room.
+and not open until the player deals with room and logic finishes. Like the bathroom door. but remember , this logic for the two door including the shaking for the bathroom door , should only happens in the first time the player enters the room and the conditions is applied.
+
+
+
+
+
+
+
+
+
+
+ 
