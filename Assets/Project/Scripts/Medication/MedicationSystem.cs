@@ -173,9 +173,9 @@ public class MedicationSystem : MonoBehaviour
         if (_cooldownTimer > 0f)
             _cooldownTimer -= Time.deltaTime;
 
-        // Input check
+        // Input check — do not consume medication while a canvas is open
         Keyboard kb = Keyboard.current;
-        if (kb != null && kb[medicationKey].wasPressedThisFrame)
+        if (kb != null && !UIInputMode.IsInUI && kb[medicationKey].wasPressedThisFrame)
             TryTakeMedication();
     }
 

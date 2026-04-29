@@ -35,8 +35,12 @@ public class MouseLook : MonoBehaviour
         Cursor.visible = false;
     }
 
+    public static bool CanLook = true;
+
     void Update()
     {
+        if (!CanLook) return;
+
         float mouseX = lookInput.x * sensitivityX * Time.deltaTime;
         float mouseY = lookInput.y * sensitivityY * Time.deltaTime;
 
@@ -47,5 +51,21 @@ public class MouseLook : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(xRotation, yRotation, 0f);
         orientation.rotation = Quaternion.Euler(0f, yRotation, 0f);
+    }
+
+    /// <summary>
+    /// Resets the stored pitch (xRotation) to 0 so the camera looks straight ahead
+    /// when controls are re-enabled. Preserves the current horizontal yaw direction.
+    /// Call this just before setting CanLook = true in the wake-up sequence.
+    /// </summary>
+    public void ResetPitchToForward()
+    {
+        xRotation = 0f;
+        // Sync yRotation from the current world Y angle so horizontal aim is preserved
+        yRotation = transform.eulerAngles.y;
+        // Apply immediately so there is no single-frame snap
+        transform.rotation = Quaternion.Euler(0f, yRotation, 0f);
+        if (orientation != null)
+            orientation.rotation = Quaternion.Euler(0f, yRotation, 0f);
     }
 }

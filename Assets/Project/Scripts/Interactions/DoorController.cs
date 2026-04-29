@@ -11,14 +11,15 @@ public class DoorController : MonoBehaviour, IInteractable
 
     [Header("Animation Settings")]
     [SerializeField] private float openAngle = -90f;
-    [SerializeField] private float animDuration = 0.6f;
-    [SerializeField] private Ease openEase = Ease.OutBack;
+    [SerializeField] private float animDuration = 0.9f;
+    [SerializeField] private Ease openEase = Ease.OutQuart;
     [SerializeField] private Ease closeEase = Ease.InOutSine;
 
     public enum RotationAxis { X, Y, Z }
 
     private bool _isOpen = false;
     private bool _isAnimating = false;
+    private bool _isLocked = false;
     private Quaternion _closedRotation;
     private Quaternion _openRotation;
 
@@ -44,13 +45,35 @@ public class DoorController : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (_isAnimating) return;
+        if (_isLocked) { Debug.Log("[Door] Locked."); return; }
         ToggleDoor();
     }
 
     public string GetPromptText()
     {
+        if (_isLocked) return "Locked";
         return _isOpen ? "Close Door" : "Open Door";
     }
+
+    /// <summary>Closes the door instantly (no animation) and locks it.</summary>
+    public void ForceClose()
+    {
+        if (_isAnimating)
+        {
+            doorPivot.DOKill();
+            _isAnimating = false;
+        }
+        _isOpen = false;
+        doorPivot.DORotateQuaternion(_closedRotation, animDuration)
+            .SetEase(closeEase)
+            .OnComplete(() => _isAnimating = false);
+    }
+
+    /// <summary>Prevents the player from opening this door.</summary>
+    public void Lock()   => _isLocked = true;
+
+    /// <summary>Allows the player to open this door again.</summary>
+    public void Unlock() => _isLocked = false;
 
     void ToggleDoor()
     {

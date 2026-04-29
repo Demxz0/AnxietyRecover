@@ -7,16 +7,17 @@ using UnityEngine.InputSystem;
 /// The cycle is entirely controlled by the player's input:
 ///   1. Hold F for 3 seconds (inhale) — circle expands as they hold
 ///   2. Release F, then hold G for 3 seconds (exhale) — circle shrinks
-///   3. During each phase, the heart icon lights up twice — player must right-click
 ///
 /// Any mistake resets the cycle:
 ///   • Releasing the key before the phase completes
 ///   • Pressing the wrong key (G during inhale, F during exhale)
-///   • Missing a heartbeat right-click window
 ///
 /// Success:
 ///   • 2 complete cycles → reduce anxiety by one level
 ///   • 5 complete cycles during panic → call CalmDown()
+///
+/// NOTE: The heartbeat right-click mechanic has been removed.
+/// Breathing now works purely by holding F then G for the required duration.
 /// </summary>
 public class BreathingSystem : MonoBehaviour
 {
@@ -59,20 +60,6 @@ public class BreathingSystem : MonoBehaviour
     [SerializeField] private int cyclesToCalmPanic = 5;
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  INSPECTOR — Heartbeat Windows
-    // ═══════════════════════════════════════════════════════════════════════
-
-    [Header("Heartbeat Windows")]
-    [Tooltip("How long each heartbeat window stays open (seconds).")]
-    [SerializeField] private float heartbeatWindowDuration = 1.0f;
-
-    [Tooltip("When the 1st heartbeat window opens, as fraction of phase duration (0–1).")]
-    [SerializeField] [Range(0f, 0.5f)] private float beat1StartFraction = 0.17f;
-
-    [Tooltip("When the 2nd heartbeat window opens, as fraction of phase duration (0–1).")]
-    [SerializeField] [Range(0.4f, 1f)] private float beat2StartFraction = 0.60f;
-
-    // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — Audio
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -82,9 +69,6 @@ public class BreathingSystem : MonoBehaviour
 
     [Tooltip("Played while the player exhales.")]
     [SerializeField] private AudioSource exhaleAudio;
-
-    [Tooltip("Played on each successful heartbeat right-click.")]
-    [SerializeField] private AudioSource heartbeatAudio;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — References
@@ -103,17 +87,14 @@ public class BreathingSystem : MonoBehaviour
     //  PUBLIC STATE (read by UI)
     // ═══════════════════════════════════════════════════════════════════════
 
-    public State  CurrentState             => _state;
-    public float  PhaseTimer               => _phaseTimer;
-    public float  CurrentPhaseDuration     => (_state == State.Inhaling) ? inhaleDuration : exhaleDuration;
-    public float  PhaseProgress            => (_state == State.Inhaling || _state == State.Exhaling)
-                                              ? Mathf.Clamp01(_phaseTimer / CurrentPhaseDuration) : 0f;
-    public bool   IsHeartbeatWindowActive  => _isWindowActive;
-    public int    ActiveBeatIndex          => _activeBeatIndex;
-    public int    BeatsHitThisPhase        => _beatsHitThisPhase;
+    public State  CurrentState               => _state;
+    public float  PhaseTimer                 => _phaseTimer;
+    public float  CurrentPhaseDuration       => (_state == State.Inhaling) ? inhaleDuration : exhaleDuration;
+    public float  PhaseProgress              => (_state == State.Inhaling || _state == State.Exhaling)
+                                               ? Mathf.Clamp01(_phaseTimer / CurrentPhaseDuration) : 0f;
     public int    ConsecutiveSuccessfulCycles => _consecutiveSuccessfulCycles;
-    public int    CyclesToReduce           => cyclesToReduceAnxiety;
-    public int    CyclesToCalm             => cyclesToCalmPanic;
+    public int    CyclesToReduce             => cyclesToReduceAnxiety;
+    public int    CyclesToCalm               => cyclesToCalmPanic;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  PRIVATE STATE
@@ -122,15 +103,6 @@ public class BreathingSystem : MonoBehaviour
     private State _state = State.Idle;
     private float _phaseTimer;
     private float _transitionTimer;
-
-    // Heartbeat tracking
-    private bool _isWindowActive;
-    private int  _activeBeatIndex;   // 0 = none, 1 = first, 2 = second
-    private int  _beatsHitThisPhase;
-    private bool _beat1Hit;
-    private bool _beat2Hit;
-    private bool _beat1WindowPassed; // true once window 1 has closed
-    private bool _beat2WindowPassed; // true once window 2 has closed
 
     // Cycle tracking
     private bool _inhaleCompleted;
@@ -148,15 +120,16 @@ public class BreathingSystem : MonoBehaviour
 
     void Update()
     {
+        // Do not process breathing input while any UI canvas is open.
+        if (UIInputMode.IsInUI) return;
+
         Keyboard kb = Keyboard.current;
-        Mouse mouse = Mouse.current;
-        if (kb == null || mouse == null) return;
+        if (kb == null) return;
 
         bool fHeld = kb[inhaleKey].isPressed;
         bool gHeld = kb[exhaleKey].isPressed;
         bool fDown = kb[inhaleKey].wasPressedThisFrame;
         bool gDown = kb[exhaleKey].wasPressedThisFrame;
-        bool rightClick = mouse.rightButton.wasPressedThisFrame;
 
         switch (_state)
         {
@@ -165,7 +138,7 @@ public class BreathingSystem : MonoBehaviour
                 break;
 
             case State.Inhaling:
-                UpdateInhaling(fHeld, gDown, rightClick);
+                UpdateInhaling(fHeld, gDown);
                 break;
 
             case State.WaitingForExhale:
@@ -173,7 +146,7 @@ public class BreathingSystem : MonoBehaviour
                 break;
 
             case State.Exhaling:
-                UpdateExhaling(gHeld, fDown, rightClick);
+                UpdateExhaling(gHeld, fDown);
                 break;
         }
 
@@ -205,7 +178,7 @@ public class BreathingSystem : MonoBehaviour
     //  STATE: INHALING
     // ═══════════════════════════════════════════════════════════════════════
 
-    void UpdateInhaling(bool fHeld, bool gDown, bool rightClick)
+    void UpdateInhaling(bool fHeld, bool gDown)
     {
         // Wrong key pressed during inhale → fail
         if (gDown)
@@ -226,31 +199,12 @@ public class BreathingSystem : MonoBehaviour
         // Advance timer
         _phaseTimer += Time.deltaTime;
 
-        // Update heartbeat windows
-        UpdateHeartbeatWindows(inhaleDuration, rightClick);
-
-        // Check if a beat window was missed
-        if (CheckMissedBeat())
-        {
-            Debug.Log("[BreathingSystem] ✗ Missed heartbeat window — cycle reset.");
-            FailCycle();
-            return;
-        }
-
         // Inhale complete!
         if (_phaseTimer >= inhaleDuration)
         {
-            if (_beatsHitThisPhase >= 2)
-            {
-                Debug.Log("[BreathingSystem] ✓ Inhale complete!");
-                _inhaleCompleted = true;
-                EnterWaitingForExhale();
-            }
-            else
-            {
-                Debug.Log("[BreathingSystem] ✗ Inhale time done but missed heartbeats — cycle reset.");
-                FailCycle();
-            }
+            Debug.Log("[BreathingSystem] ✓ Inhale complete!");
+            _inhaleCompleted = true;
+            EnterWaitingForExhale();
         }
     }
 
@@ -289,7 +243,7 @@ public class BreathingSystem : MonoBehaviour
     //  STATE: EXHALING
     // ═══════════════════════════════════════════════════════════════════════
 
-    void UpdateExhaling(bool gHeld, bool fDown, bool rightClick)
+    void UpdateExhaling(bool gHeld, bool fDown)
     {
         // Wrong key pressed during exhale → fail
         if (fDown)
@@ -310,93 +264,12 @@ public class BreathingSystem : MonoBehaviour
         // Advance timer
         _phaseTimer += Time.deltaTime;
 
-        // Update heartbeat windows
-        UpdateHeartbeatWindows(exhaleDuration, rightClick);
-
-        // Check if a beat window was missed
-        if (CheckMissedBeat())
-        {
-            Debug.Log("[BreathingSystem] ✗ Missed heartbeat window — cycle reset.");
-            FailCycle();
-            return;
-        }
-
         // Exhale complete!
         if (_phaseTimer >= exhaleDuration)
         {
-            if (_beatsHitThisPhase >= 2)
-            {
-                Debug.Log("[BreathingSystem] ✓ Exhale complete — full cycle done!");
-                CompleteCycle();
-            }
-            else
-            {
-                Debug.Log("[BreathingSystem] ✗ Exhale time done but missed heartbeats — cycle reset.");
-                FailCycle();
-            }
+            Debug.Log("[BreathingSystem] ✓ Exhale complete — full cycle done!");
+            CompleteCycle();
         }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    //  HEARTBEAT WINDOWS
-    // ═══════════════════════════════════════════════════════════════════════
-
-    void UpdateHeartbeatWindows(float phaseDuration, bool rightClick)
-    {
-        float beat1Start = phaseDuration * beat1StartFraction;
-        float beat1End   = beat1Start + heartbeatWindowDuration;
-        float beat2Start = phaseDuration * beat2StartFraction;
-        float beat2End   = beat2Start + heartbeatWindowDuration;
-
-        bool inWindow1 = _phaseTimer >= beat1Start && _phaseTimer < beat1End;
-        bool inWindow2 = _phaseTimer >= beat2Start && _phaseTimer < beat2End;
-
-        // Track windows closing
-        if (_phaseTimer >= beat1End) _beat1WindowPassed = true;
-        if (_phaseTimer >= beat2End) _beat2WindowPassed = true;
-
-        if (inWindow1)
-        {
-            _isWindowActive = true;
-            _activeBeatIndex = 1;
-        }
-        else if (inWindow2)
-        {
-            _isWindowActive = true;
-            _activeBeatIndex = 2;
-        }
-        else
-        {
-            _isWindowActive = false;
-            _activeBeatIndex = 0;
-        }
-
-        // Handle right-click during active window
-        if (rightClick && _isWindowActive)
-        {
-            if (_activeBeatIndex == 1 && !_beat1Hit)
-            {
-                _beat1Hit = true;
-                _beatsHitThisPhase++;
-                Debug.Log("[BreathingSystem] ♥ Beat 1 hit!");
-                PlayHeartbeat();
-            }
-            else if (_activeBeatIndex == 2 && !_beat2Hit)
-            {
-                _beat2Hit = true;
-                _beatsHitThisPhase++;
-                Debug.Log("[BreathingSystem] ♥ Beat 2 hit!");
-                PlayHeartbeat();
-            }
-        }
-    }
-
-    /// <summary>Returns true if a beat window has closed without being hit.</summary>
-    bool CheckMissedBeat()
-    {
-        if (_beat1WindowPassed && !_beat1Hit) return true;
-        if (_beat2WindowPassed && !_beat2Hit) return true;
-        return false;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -414,8 +287,6 @@ public class BreathingSystem : MonoBehaviour
     {
         _state = State.WaitingForExhale;
         _transitionTimer = 0f;
-        _isWindowActive = false;
-        _activeBeatIndex = 0;
     }
 
     void EnterExhaling()
@@ -428,13 +299,6 @@ public class BreathingSystem : MonoBehaviour
     void ResetPhaseTracking()
     {
         _phaseTimer = 0f;
-        _beatsHitThisPhase = 0;
-        _beat1Hit = false;
-        _beat2Hit = false;
-        _beat1WindowPassed = false;
-        _beat2WindowPassed = false;
-        _isWindowActive = false;
-        _activeBeatIndex = 0;
     }
 
     void FailCycle()
@@ -525,12 +389,6 @@ public class BreathingSystem : MonoBehaviour
         }
     }
 
-    void PlayHeartbeat()
-    {
-        if (heartbeatAudio != null && heartbeatAudio.clip != null)
-            heartbeatAudio.PlayOneShot(heartbeatAudio.clip);
-    }
-
     void PlayLoopIfNotPlaying(AudioSource src)
     {
         if (src == null || src.clip == null) return;
@@ -553,8 +411,6 @@ public class BreathingSystem : MonoBehaviour
     {
         Debug.Log($"State: {_state} | " +
                   $"Timer: {_phaseTimer:F1}s | " +
-                  $"Window: {_isWindowActive} (beat {_activeBeatIndex}) | " +
-                  $"Beats: {_beatsHitThisPhase}/2 | " +
                   $"Streak: {_consecutiveSuccessfulCycles}");
     }
 #endif

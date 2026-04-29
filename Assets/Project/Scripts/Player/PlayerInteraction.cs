@@ -1,11 +1,24 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using TMPro;
 
+/// <summary>
+/// Handles player raycasting for interaction.
+///
+/// CROSSHAIR COLOR:
+///   The crosshair dot turns red when the raycast hits an IInteractable.
+///   Assign the crosshair Image to 'crosshairImage' in the Inspector.
+///
+/// CURSOR VISIBILITY:
+///   Cursor is LOCKED and HIDDEN at all times during gameplay.
+///   It only appears when a canvas item is open (UIInputMode.Enter) or Esc is pressed.
+/// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
-    [SerializeField] private float interactRadius = 2f;
+    [SerializeField] private float interactDistance = 3f;
+    [SerializeField] private float interactThickness = 0.3f;
     [SerializeField] private LayerMask interactableLayer;
 
     [Header("Camera Reference")]
@@ -15,13 +28,19 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] private GameObject interactPromptUI;
     [SerializeField] private TextMeshProUGUI promptText;
 
+    [Header("Crosshair")]
+    [Tooltip("The crosshair dot Image in the center of the screen. " +
+             "Turns red when aiming at an interactable object.")]
+    [SerializeField] private Image crosshairImage;
+    [SerializeField] private Color crosshairDefaultColor = Color.white;
+    [SerializeField] private Color crosshairInteractableColor = Color.red;
+
     private IInteractable _currentTarget;
     private PlayerInputActions _inputActions;
 
     void Awake()
     {
         _inputActions = new PlayerInputActions();
-
         if (_cam == null) _cam = Camera.main;
     }
 
@@ -39,19 +58,28 @@ public class PlayerInteraction : MonoBehaviour
 
     void Update()
     {
-        DetectInteractable();
+        if (UIInputMode.IsInUI)
+        {
+            if (_currentTarget != null)
+            {
+                _currentTarget = null;
+                HidePrompt();
+                SetCrosshairColor(false);
+            }
+            return;
+        }
 
-        Debug.DrawRay(transform.position, Vector3.up * interactRadius, Color.yellow);
+        DetectInteractable();
     }
 
     void DetectInteractable()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRadius, interactableLayer);
+        Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        RaycastHit hit;
 
-        if (hits.Length > 0)
+        if (Physics.SphereCast(ray, interactThickness, out hit, interactDistance, interactableLayer))
         {
-            Collider closest = GetClosest(hits);
-            IInteractable interactable = closest.GetComponent<IInteractable>();
+            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
 
             if (interactable != null)
             {
@@ -59,9 +87,13 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     _currentTarget = interactable;
                     ShowPrompt(_currentTarget.GetPromptText());
-                    Debug.Log("Found interactable: " + closest.gameObject.name);
                 }
+                SetCrosshairColor(true);
                 return;
+            }
+            else
+            {
+                Debug.Log($"<color=orange>[Interaction] WARNING: Hit '{hit.collider.gameObject.name}' on Interactable layer but has NO interactable script!</color>");
             }
         }
 
@@ -70,35 +102,22 @@ public class PlayerInteraction : MonoBehaviour
             _currentTarget = null;
             HidePrompt();
         }
-    }
 
-    Collider GetClosest(Collider[] colliders)
-    {
-        Collider closest = null;
-        float minDist = Mathf.Infinity;
-
-        foreach (Collider col in colliders)
-        {
-            float dist = Vector3.Distance(transform.position, col.transform.position);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                closest = col;
-            }
-        }
-
-        return closest;
+        SetCrosshairColor(false);
     }
 
     private void OnInteractPerformed(InputAction.CallbackContext context)
     {
-        Debug.Log("E pressed — target: " + (_currentTarget != null ? _currentTarget.ToString() : "NULL"));
+        if (UIInputMode.IsInUI) return;
+        if (_currentTarget == null) return;
 
-        if (_currentTarget != null)
-        {
-            _currentTarget.Interact();
+        // Cache before Interact() â€” opening a canvas calls UIInputMode.Enter()
+        // which clears _currentTarget, so ShowPrompt below would crash.
+        IInteractable target = _currentTarget;
+        target.Interact();
+
+        if (!UIInputMode.IsInUI && _currentTarget != null)
             ShowPrompt(_currentTarget.GetPromptText());
-        }
     }
 
     void ShowPrompt(string text)
@@ -111,9 +130,20 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (interactPromptUI) interactPromptUI.SetActive(false);
     }
+
+    void SetCrosshairColor(bool isInteractable)
+    {
+        if (crosshairImage == null) return;
+        crosshairImage.color = isInteractable ? crosshairInteractableColor : crosshairDefaultColor;
+    }
+
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, interactRadius);
+        if (_cam != null)
+        {
+            Gizmos.color = Color.green;
+            Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Gizmos.DrawRay(ray.origin, ray.direction * interactDistance);
+        }
     }
 }
