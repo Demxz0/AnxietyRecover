@@ -10,7 +10,7 @@ using UnityEngine;
 ///   1  Player picks up phone → NPC Part 1 plays (desk paper hint / Digit 1)
 ///   2  Player reads desk paper → NPC Part 2 plays (trash paper / password hint)
 ///   3  NPC call cuts off → phone busy → anxiety spike
-///   4  Player reads trash paper → password known
+///   4  Player reads trash paper → password known → anxiety STOPS increasing
 ///   5  Player uses computer → Digit 2 revealed
 ///   6  Player solves piano (clock hint) → Digit 3 revealed
 ///   7  Player enters correct combo → gets key
@@ -62,10 +62,20 @@ public class DependencyRoomManager : MonoBehaviour
     [Tooltip("Anxiety added when the NPC call suddenly cuts off.")]
     [SerializeField] private float anxietyOnCutOff = 15f;
 
+    [Header("Anxiety — Gradual (after call-back attempt)")]
+    [Tooltip("Anxiety added per second while the player is stuck after call-back and " +
+             "has not yet found the trash paper. Stops once trash paper is read.")]
+    [SerializeField] private float anxietyPerSecondAfterCallBack = 1.5f;
+
     [Header("Room Entry Trigger")]
     [Tooltip("Enable phone ringing when player enters the room. " +
              "Uses a trigger collider on this or a child GameObject.")]
     [SerializeField] private bool ringOnRoomEntry = true;
+
+    // ─── Private State ────────────────────────────────────────────────────────
+    private bool _trashPaperRead;
+    private bool _deskPaperReadEarly;   // true if player read the desk paper before the phone call
+    private Coroutine _gradualAnxietyRoutine;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
     void Awake()
@@ -89,6 +99,10 @@ public class DependencyRoomManager : MonoBehaviour
         {
             Debug.Log("the number can not be reached");
             PlayBusyTone();
+
+            // Start gradual anxiety if not already running and paper not yet read
+            if (!_trashPaperRead && _gradualAnxietyRoutine == null)
+                _gradualAnxietyRoutine = StartCoroutine(GradualAnxietyRoutine());
             return;
         }
 
@@ -103,8 +117,18 @@ public class DependencyRoomManager : MonoBehaviour
     /// <summary>Called by PaperOnDeskInteraction when player reads the desk paper.</summary>
     public void OnDeskPaperRead()
     {
+        // Always record that the paper has been seen, even if it was read too early.
+        // PlayNpcPart1 will check this flag and auto-advance when the time is right.
+        _deskPaperReadEarly = true;
+
         if (CurrentStage != Stage.WaitingForDeskPaper) return;
 
+        AdvanceFromDeskPaperRead();
+    }
+
+    /// <summary>Internal helper — advances the stage after the desk paper is confirmed read.</summary>
+    void AdvanceFromDeskPaperRead()
+    {
         GameStateManager.Instance?.SetSeenDeskPaper();
         GameStateManager.Instance?.SetDigit1Found();
 
@@ -118,8 +142,20 @@ public class DependencyRoomManager : MonoBehaviour
     {
         if (CurrentStage < Stage.PhoneBusy) return;
 
+        _trashPaperRead = true;
         GameStateManager.Instance?.SetSeenTrashPaper();
-        Debug.Log("[DependencyRoom] Trash paper read — password known.");
+        Debug.Log("[DependencyRoom] Trash paper read — password known. Anxiety drain stopped.");
+
+        // Stop the gradual anxiety increase — player found a lead
+        if (_gradualAnxietyRoutine != null)
+        {
+            StopCoroutine(_gradualAnxietyRoutine);
+            _gradualAnxietyRoutine = null;
+        }
+
+        // Bring anxiety back down to mild
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.ReduceOneLevel();
     }
 
     /// <summary>Called by ComputerInteraction when computer is successfully accessed.</summary>
@@ -147,12 +183,13 @@ public class DependencyRoomManager : MonoBehaviour
         Debug.Log("[DependencyRoom] Stage 6 — all 3 digits found! Waiting for combo lock.");
     }
 
-    /// <summary>Called by ComboLockInteraction when the correct code is entered.</summary>
+    /// <summary>Called by BoxKeyPickup when the player clicks the key after opening the lock.</summary>
     public void OnComboLockSolved()
     {
+        if (CurrentStage == Stage.Complete) return; // already processed
         CurrentStage = Stage.Complete;
         GameStateManager.Instance?.CollectHallwayKey();
-        Debug.Log("[DependencyRoom] Combo lock solved — key collected!");
+        Debug.Log("[DependencyRoom] Key picked up — room complete!");
     }
 
     // ─── Phone Helpers ────────────────────────────────────────────────────────
@@ -171,12 +208,27 @@ public class DependencyRoomManager : MonoBehaviour
     {
         if (npcAudioSource != null && busyToneClip != null)
             npcAudioSource.PlayOneShot(busyToneClip);
-        if (AnxietyManager.Instance != null)
-            AnxietyManager.Instance.AddAnxiety(3f);
         Debug.Log("[DependencyRoom] Phone is busy — line cut off.");
     }
 
     // ─── Coroutines ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Adds anxiety gradually per second after the call-back attempt,
+    /// until the trash paper is found (which calls ReduceOneLevel and stops this).
+    /// </summary>
+    IEnumerator GradualAnxietyRoutine()
+    {
+        Debug.Log("[DependencyRoom] Gradual anxiety started — player can't reach anyone.");
+        while (!_trashPaperRead)
+        {
+            if (AnxietyManager.Instance != null && !AnxietyManager.Instance.IsPanicActive)
+                AnxietyManager.Instance.AddAnxiety(anxietyPerSecondAfterCallBack * Time.deltaTime);
+            yield return null;
+        }
+        Debug.Log("[DependencyRoom] Gradual anxiety stopped — trash paper was read.");
+    }
+
     IEnumerator PlayNpcPart1()
     {
         if (npcAudioSource != null && npcPart1Clip != null)
@@ -191,9 +243,17 @@ public class DependencyRoomManager : MonoBehaviour
             yield return new WaitForSeconds(1f);
         }
 
-        // After part 1, wait for desk paper
-        CurrentStage = Stage.WaitingForDeskPaper;
-        Debug.Log("[DependencyRoom] Stage 2 — waiting for player to read desk paper.");
+        // After part 1, check if the player already read the desk paper early
+        if (_deskPaperReadEarly)
+        {
+            Debug.Log("[DependencyRoom] Stage 2 — desk paper was already read, auto-advancing.");
+            AdvanceFromDeskPaperRead();
+        }
+        else
+        {
+            CurrentStage = Stage.WaitingForDeskPaper;
+            Debug.Log("[DependencyRoom] Stage 2 — waiting for player to read desk paper.");
+        }
     }
 
     IEnumerator PlayNpcPart2ThenCutOff()
@@ -236,6 +296,7 @@ public class DependencyRoomManager : MonoBehaviour
         GameStateManager.Instance?.SetSeenDeskPaper();
         GameStateManager.Instance?.SetDigit1Found();
         GameStateManager.Instance?.SetSeenTrashPaper();
+        _trashPaperRead = true;
         CurrentStage = Stage.WaitingForComputer;
         Debug.Log("[DependencyRoom] DEBUG: Skipped to WaitingForComputer.");
     }

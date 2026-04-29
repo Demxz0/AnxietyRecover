@@ -101,6 +101,23 @@ public class PanicAttackController : MonoBehaviour
              "Mild level (~30) avoids immediate re-trigger.")]
     [SerializeField] private float postBlackoutAnxiety = 30f;
 
+    [Header("Wake-Up Sequence")]
+    [Tooltip("The camera Transform used for the wake-up tilt. Auto-finds Camera.main if not set.")]
+    [SerializeField] private Transform wakeUpCamera;
+
+    [Tooltip("How far the camera tilts sideways when lying on the ground (degrees on Z axis, e.g. 80).")]
+    [SerializeField] private float wakeUpDownPitch = 80f;
+
+    [Tooltip("Local Y position of the camera when lying on the ground " +
+             "(relative to player body). 0 = floor level. Should be lower than normal eye height.")]
+    [SerializeField] private float wakeUpGroundY = 0f;
+
+    [Tooltip("How long the camera stays tilted down before starting to rise (seconds).")]
+    [SerializeField] private float wakeUpLieDownDuration = 1.5f;
+
+    [Tooltip("How long the camera takes to rise from lying down to upright (seconds).")]
+    [SerializeField] private float wakeUpRiseDuration = 2.5f;
+
     // ═══════════════════════════════════════════════════════════════════════
     //  PRIVATE STATE
     // ═══════════════════════════════════════════════════════════════════════
@@ -196,6 +213,41 @@ public class PanicAttackController : MonoBehaviour
     /// <summary>True while a panic attack sequence is running.</summary>
     public bool IsActive => _isActive;
 
+    /// <summary>
+    /// Skip directly to the blackout phase — bypasses the onset and hold.
+    /// Useful for Editor testing or scripted story events.
+    /// Safe to call even if no panic is currently running.
+    /// </summary>
+    public void ForceBlackout()
+    {
+        // Stop any in-progress panic coroutine so we don't double-run
+        if (_panicRoutine != null)
+        {
+            StopCoroutine(_panicRoutine);
+            _panicRoutine = null;
+        }
+
+        _panicRoutine = StartCoroutine(ForceBlackoutRoutine());
+    }
+
+    IEnumerator ForceBlackoutRoutine()
+    {
+        _isActive   = true;
+        _calmedDown = false;
+
+        // Snap all effects to full immediately
+        StartAudioLoops();
+        ApplyEffects(1f);
+        FadeAudio(1f);
+
+        Debug.Log("[PanicAttackController] ── FORCED Blackout Sequence ──");
+        yield return StartCoroutine(BlackoutSequence());
+
+        _isActive = false;
+        AnxietyManager.Instance?.NotifyPanicAttackEnded();
+        Debug.Log("[PanicAttackController] ── Forced Blackout Complete ──");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     //  PANIC SEQUENCE
     // ═══════════════════════════════════════════════════════════════════════
@@ -231,11 +283,20 @@ public class PanicAttackController : MonoBehaviour
 
         Debug.Log("[PanicAttackController] ── Panic Attack Active (waiting for calm or timeout) ──");
 
-        // ── Phase 2: HOLD — wait for calm-down or timeout ────────────────
+        // ── Phase 2: HOLD — wait for calm-down, timeout, or anxiety dropping below Panic ──
         float holdTimer = 0f;
         while (holdTimer < panicDuration && !_calmedDown)
         {
             holdTimer += Time.deltaTime;
+
+            // If anxiety drops below the Panic threshold mid-panic, stop the attack.
+            if (AnxietyManager.Instance != null &&
+                AnxietyManager.Instance.CurrentLevel < AnxietyLevel.Panic)
+            {
+                _calmedDown = true;
+                Debug.Log("[PanicAttackController] Anxiety dropped below Panic level — panic ending early.");
+                break;
+            }
 
             // Subtle intensity fluctuation during hold (adds unease)
             float flicker = 0.85f + 0.15f * Mathf.Sin(Time.time * 2.5f);
@@ -315,6 +376,81 @@ public class PanicAttackController : MonoBehaviour
         }
 
         SetBlackoutAlpha(0f);
+
+        // ── Wake-up sequence (controls OFF until fully upright) ────────────────
+        yield return StartCoroutine(WakeUpSequence());
+    }
+
+    IEnumerator WakeUpSequence()
+    {
+        // Ensure controls stay off
+        PlayerMovement.CanMove = false;
+        MouseLook.CanLook = false;
+
+        // Find camera if not assigned
+        Transform cam = wakeUpCamera;
+        if (cam == null && Camera.main != null)
+            cam = Camera.main.transform;
+
+        if (cam == null)
+        {
+            // No camera found — just re-enable controls after a short wait
+            yield return new WaitForSeconds(wakeUpLieDownDuration + wakeUpRiseDuration);
+            PlayerMovement.CanMove = true;
+            MouseLook.CanLook = true;
+            yield break;
+        }
+
+        // Save upright state — both rotation and local eye-height position
+        // We force pitch (X) and roll (Z) to 0 so the player wakes up looking straight forward
+        Quaternion uprightRotation   = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
+        Vector3   uprightLocalPos    = cam.localPosition;
+        float     eyeHeight          = uprightLocalPos.y;
+
+        // --- Phase A: Instantly snap to ground (lying on side, at floor level) ---
+        // Z roll = sideways lean, Y local position = camera height snapped to ground, X pitch = 0 (looking ahead)
+        Quaternion downRotation   = Quaternion.Euler(0f, cam.eulerAngles.y, wakeUpDownPitch);
+        Vector3    groundLocalPos = new Vector3(uprightLocalPos.x, wakeUpGroundY, uprightLocalPos.z);
+
+        cam.rotation      = downRotation;
+        cam.localPosition = groundLocalPos;
+
+        Debug.Log("[PanicAttackController] Wake-up: lying on the ground.");
+        yield return new WaitForSeconds(wakeUpLieDownDuration);
+
+        // --- Phase B: Simultaneously rise in height AND roll back to upright ---
+        Debug.Log("[PanicAttackController] Wake-up: getting up...");
+        float elapsed = 0f;
+        while (elapsed < wakeUpRiseDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / wakeUpRiseDuration));
+
+            // Roll from side-tilt back to upright
+            cam.rotation = Quaternion.Slerp(downRotation, uprightRotation, t);
+
+            // Rise from ground level up to eye height
+            float currentY    = Mathf.Lerp(wakeUpGroundY, eyeHeight, t);
+            cam.localPosition = new Vector3(uprightLocalPos.x, currentY, uprightLocalPos.z);
+
+            yield return null;
+        }
+
+        // Snap exactly to original state
+        cam.rotation      = uprightRotation;
+        cam.localPosition = uprightLocalPos;
+
+        // Reset the mouse look internal pitch so it doesn't snap back to pre-blackout rotation
+        var mouseLook = cam.GetComponent<MouseLook>();
+        if (mouseLook != null)
+        {
+            mouseLook.ResetPitchToForward();
+        }
+
+        // Controls re-enabled — player is back in the game
+        PlayerMovement.CanMove = true;
+        MouseLook.CanLook = true;
+        Debug.Log("[PanicAttackController] Wake-up: fully upright — controls restored.");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -430,6 +566,9 @@ public class PanicAttackController : MonoBehaviour
         else
             Debug.LogError("No AnxietyManager in scene!");
     }
+
+    [ContextMenu("Test: Force Blackout (Skip Hold)")]
+    void TestForceBlackout() => ForceBlackout();
 
     [ContextMenu("Test: Calm Down")]
     void TestCalmDown() => CalmDown();

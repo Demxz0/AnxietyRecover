@@ -18,8 +18,8 @@ public class LockedDoorInteraction : MonoBehaviour, IInteractable
 
     [Header("Animation")]
     [SerializeField] private float openAngle    = -90f;
-    [SerializeField] private float animDuration = 0.6f;
-    [SerializeField] private Ease  openEase     = Ease.OutBack;
+    [SerializeField] private float animDuration = 0.9f;
+    [SerializeField] private Ease  openEase     = Ease.OutQuart;
 
     [Header("Anxiety — Locked Interaction")]
     [Tooltip("Anxiety added each time the player tries to open the locked door.")]
@@ -35,6 +35,10 @@ public class LockedDoorInteraction : MonoBehaviour, IInteractable
     private bool _isAnimating;
     private Quaternion _closedRot;
     private Quaternion _openRot;
+
+    // Tracks how many times the player has clicked the locked door.
+    // Anxiety only increases on the FIRST click.
+    private int _lockedClickCount;
 
     void Start()
     {
@@ -58,8 +62,12 @@ public class LockedDoorInteraction : MonoBehaviour, IInteractable
             {
                 Debug.Log("[LockedDoor] Door is locked. Player needs the key.");
                 PlaySound(lockedSound);
-                if (AnxietyManager.Instance != null)
+
+                // Only add anxiety on the VERY FIRST click — subsequent clicks do nothing
+                if (_lockedClickCount == 0 && AnxietyManager.Instance != null)
                     AnxietyManager.Instance.AddAnxiety(anxietyOnLockedAttempt);
+
+                _lockedClickCount++;
             }
             return;
         }

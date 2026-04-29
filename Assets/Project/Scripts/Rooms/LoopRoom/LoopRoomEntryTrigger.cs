@@ -20,7 +20,8 @@ public class LoopRoomEntryTrigger : MonoBehaviour
             if (LoopRoomManager.Instance != null)
             {
                 LoopRoomManager.Instance.StartExpandingEffect();
-                Debug.Log("[ExpandingRoom] Player entered the kitchen. Expanding effect started!");
+                LoopRoomManager.Instance.CloseAndLockKitchenDoor();
+                Debug.Log("[ExpandingRoom] Player entered the kitchen. Expanding effect started, door closing.");
             }
         }
     }

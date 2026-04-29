@@ -4,13 +4,13 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Generic interactable — shows a Canvas with a 2D image when the player interacts.
-/// Player closes it by pressing E or Escape (or clicking a close button).
+/// Player closes it ONLY by clicking the close button on the canvas.
 ///
 /// SETUP:
 ///   1. Attach to any 3D object that the player can examine.
 ///   2. Create a Canvas (World Space or Screen Space) with a 2D Image on it.
 ///   3. Assign that Canvas GameObject to 'itemCanvas'.
-///   4. Optionally: assign a Button inside the canvas to 'closeButton'.
+///   4. Assign the close Button inside the canvas to 'closeButton'.
 ///   5. Hook up 'OnFirstInteracted' in the Inspector to trigger one-time events.
 /// </summary>
 public class CanvasItemInteraction : MonoBehaviour, IInteractable
@@ -49,14 +49,7 @@ public class CanvasItemInteraction : MonoBehaviour, IInteractable
         if (closeButton != null) closeButton.onClick.AddListener(CloseCanvas);
     }
 
-    void Update()
-    {
-        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
-            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            CloseCanvas();
-        }
-    }
+    // Canvas is closed exclusively via the close button — no keyboard shortcut.
 
     // ─── IInteractable ───────────────────────────────────────────────────────
     public void Interact()

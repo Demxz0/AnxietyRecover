@@ -30,6 +30,13 @@ public class GameStateManager : MonoBehaviour
     public bool IllusionRoomCompleted   { get; private set; }
     public bool LoopRoomCompleted       { get; private set; }
 
+    // ─── Illusion Room — Switch Piece ─────────────────────────────────────────
+    /// <summary>
+    /// True once the light-switch piece has been placed in the Illusion Room.
+    /// BathroomManager uses this to decide if the bathroom effect should activate.
+    /// </summary>
+    public bool IsSwitchPiecePlaced { get; private set; }
+
     // ─── Events ──────────────────────────────────────────────────────────────
     public event Action OnHallwayKeyPickup;
     public event Action OnSwitchPiecePickup;
@@ -103,8 +110,21 @@ public class GameStateManager : MonoBehaviour
     {
         if (IllusionRoomCompleted) return;
         IllusionRoomCompleted = true;
+        // The switch piece being placed is what completes the Illusion Room.
+        SetSwitchPiecePlaced();
         Debug.Log("[GameState] Illusion Room COMPLETE.");
         OnIllusionRoomCompleted?.Invoke();
+    }
+
+    /// <summary>
+    /// Call when the light switch piece is placed in the Illusion Room socket.
+    /// Prevents the bathroom effect from triggering again.
+    /// </summary>
+    public void SetSwitchPiecePlaced()
+    {
+        if (IsSwitchPiecePlaced) return;
+        IsSwitchPiecePlaced = true;
+        Debug.Log("[GameState] Switch piece placed — bathroom effect locked out.");
     }
 
     public void CompleteLoopRoom()

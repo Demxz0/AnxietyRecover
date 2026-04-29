@@ -61,6 +61,10 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     [SerializeField] private AudioClip   wrongSound;
     [SerializeField] private AudioClip   clickSound;
 
+    [Header("Close Button")]
+    [Tooltip("Button on the puzzle canvas that closes it. Must be assigned — keyboard shortcuts are disabled.")]
+    [SerializeField] private Button closeButton;
+
     [Header("Anxiety — Wrong Attempt")]
     [SerializeField] private float anxietyOnWrongAttempt = 8f;
 
@@ -84,23 +88,17 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
         }
 
         if (submitButton != null) submitButton.onClick.AddListener(CheckAnswer);
+        if (closeButton  != null) closeButton.onClick.AddListener(ClosePuzzle);
         UpdateSlotDisplay();
     }
 
-    void Update()
-    {
-        if (_isOpen && Time.time - _timeOpened > 0.1f && UnityEngine.InputSystem.Keyboard.current != null && 
-            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            ClosePuzzle();
-        }
-    }
+    // Canvas is closed exclusively via the close button — no keyboard shortcut.
 
     // ─── IInteractable ───────────────────────────────────────────────────────
     public void Interact()
     {
         if (_isSolved) return;
-        if (_isOpen)   { ClosePuzzle(); return; }
+        if (_isOpen)   return; // already open — only the close button can dismiss it
         OpenPuzzle();
     }
 
@@ -168,6 +166,9 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
         _timeOpened = Time.time;
         if (feedbackText != null) feedbackText.text = "";
         UIInputMode.Enter();
+        // Force cursor visible in case UIInputMode was in a stale state
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
     }
 
     void ClosePuzzle()

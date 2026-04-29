@@ -36,6 +36,13 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
     [Tooltip("The exact password shown on the trash paper.")]
     [SerializeField] private string correctPassword = "YouGotThis123";
 
+    [Header("Close Buttons")]
+    [Tooltip("Button on the locked canvas to close it. Must be assigned.")]
+    [SerializeField] private Button closeLockedButton;
+
+    [Tooltip("Button on the desktop canvas to close it. Must be assigned.")]
+    [SerializeField] private Button closeDesktopButton;
+
     [Header("Audio (optional)")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip   unlockSound;
@@ -55,6 +62,10 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
         if (submitPasswordButton != null)
             submitPasswordButton.onClick.AddListener(CheckPassword);
 
+        // Wire close buttons
+        if (closeLockedButton  != null) closeLockedButton.onClick.AddListener(CloseAll);
+        if (closeDesktopButton != null) closeDesktopButton.onClick.AddListener(CloseAll);
+
         // Wire InputField's native Submit event (fires on Enter key)
         if (passwordInput != null)
             passwordInput.onSubmit.AddListener(_ => CheckPassword());
@@ -62,23 +73,13 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
 
     // ─── Update ───────────────────────────────────────────────────────────────
 
-    void Update()
-    {
-        // Escape closes any open canvas — we read raw keyboard because the
-        // Player action map is disabled while IsInUI.
-        if (_isOpen && Time.time - _timeOpened > 0.1f
-            && UnityEngine.InputSystem.Keyboard.current != null
-            && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            CloseAll();
-        }
-    }
+    // Canvas is closed exclusively via close buttons — no keyboard shortcut.
 
     // ─── IInteractable ───────────────────────────────────────────────────────
 
     public void Interact()
     {
-        if (_isOpen) { CloseAll(); return; }
+        if (_isOpen) return; // already open — only the close button can dismiss it
 
         bool isUnlocked = GameStateManager.Instance != null && GameStateManager.Instance.ComputerUnlocked;
 

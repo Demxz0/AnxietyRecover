@@ -1,7 +1,19 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using TMPro;
 
+/// <summary>
+/// Handles player raycasting for interaction.
+///
+/// CROSSHAIR COLOR:
+///   The crosshair dot turns red when the raycast hits an IInteractable.
+///   Assign the crosshair Image to 'crosshairImage' in the Inspector.
+///
+/// CURSOR VISIBILITY:
+///   Cursor is LOCKED and HIDDEN at all times during gameplay.
+///   It only appears when a canvas item is open (UIInputMode.Enter) or Esc is pressed.
+/// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
@@ -15,6 +27,13 @@ public class PlayerInteraction : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject interactPromptUI;
     [SerializeField] private TextMeshProUGUI promptText;
+
+    [Header("Crosshair")]
+    [Tooltip("The crosshair dot Image in the center of the screen. " +
+             "Turns red when aiming at an interactable object.")]
+    [SerializeField] private Image crosshairImage;
+    [SerializeField] private Color crosshairDefaultColor = Color.white;
+    [SerializeField] private Color crosshairInteractableColor = Color.red;
 
     private IInteractable _currentTarget;
     private PlayerInputActions _inputActions;
@@ -45,6 +64,7 @@ public class PlayerInteraction : MonoBehaviour
             {
                 _currentTarget = null;
                 HidePrompt();
+                SetCrosshairColor(false);
             }
             return;
         }
@@ -68,6 +88,7 @@ public class PlayerInteraction : MonoBehaviour
                     _currentTarget = interactable;
                     ShowPrompt(_currentTarget.GetPromptText());
                 }
+                SetCrosshairColor(true);
                 return;
             }
             else
@@ -81,6 +102,8 @@ public class PlayerInteraction : MonoBehaviour
             _currentTarget = null;
             HidePrompt();
         }
+
+        SetCrosshairColor(false);
     }
 
     private void OnInteractPerformed(InputAction.CallbackContext context)
@@ -106,6 +129,12 @@ public class PlayerInteraction : MonoBehaviour
     void HidePrompt()
     {
         if (interactPromptUI) interactPromptUI.SetActive(false);
+    }
+
+    void SetCrosshairColor(bool isInteractable)
+    {
+        if (crosshairImage == null) return;
+        crosshairImage.color = isInteractable ? crosshairInteractableColor : crosshairDefaultColor;
     }
 
     void OnDrawGizmosSelected()

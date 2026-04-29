@@ -90,6 +90,14 @@ public class LoopRoomManager : MonoBehaviour
              "breathing to reverse it.")]
     [SerializeField] private float anxietyPerSecond = 1.5f;
 
+    [Header("Kitchen Door")]
+    [Tooltip("The DoorController on the kitchen door. It will auto-close and lock when the " +
+             "player enters, and unlock once the room loop is complete.")]
+    [SerializeField] private DoorController kitchenDoor;
+
+    [Tooltip("Seconds after the player enters before the door closes (lets them walk in first).")]
+    [SerializeField] private float doorCloseDelay = 1.5f;
+
     [Header("Audio (optional)")]
     [Tooltip("Looping ambient sound that plays while the effect is active.")]
     [SerializeField] private AudioSource ambientSource;
@@ -215,6 +223,24 @@ public class LoopRoomManager : MonoBehaviour
         Debug.Log("[ExpandingRoom] Effect started — stand still and breathe to reverse it.");
     }
 
+    /// <summary>
+    /// Closes and locks the kitchen door behind the player (called once on entry).
+    /// The door unlocks automatically when the room is complete.
+    /// </summary>
+    public void CloseAndLockKitchenDoor()
+    {
+        if (kitchenDoor == null) return;
+        StartCoroutine(DelayedDoorClose());
+    }
+
+    System.Collections.IEnumerator DelayedDoorClose()
+    {
+        yield return new WaitForSeconds(doorCloseDelay);
+        kitchenDoor.ForceClose();
+        kitchenDoor.Lock();
+        Debug.Log("[ExpandingRoom] Kitchen door closed and locked.");
+    }
+
     // ─── Private ─────────────────────────────────────────────────────────────
 
     void OnBreathingCycleCompleted(int cycles)
@@ -283,6 +309,13 @@ public class LoopRoomManager : MonoBehaviour
 
         if (ambientSource != null)
             ambientSource.Stop();
+
+        // Unlock the kitchen door so the player can leave
+        if (kitchenDoor != null)
+        {
+            kitchenDoor.Unlock();
+            Debug.Log("[ExpandingRoom] Kitchen door unlocked.");
+        }
 
         GameStateManager.Instance?.CompleteLoopRoom();
         Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE!");

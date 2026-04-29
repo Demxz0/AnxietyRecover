@@ -10,7 +10,7 @@ using TMPro;
 ///   • Exhaling (G held): circle shrinks proportionally to hold time
 ///   • Idle: circle sits at rest (minScale)
 ///
-/// Heart icon only activates during heartbeat windows while the player is breathing.
+/// NOTE: The heartbeat mechanic and heart icon have been removed.
 /// </summary>
 public class BreathingCircleUI : MonoBehaviour
 {
@@ -41,23 +41,6 @@ public class BreathingCircleUI : MonoBehaviour
 
     [Tooltip("Shows the current key hint.")]
     [SerializeField] private TextMeshProUGUI keyHintLabel;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    //  INSPECTOR — Heart Icon
-    // ═══════════════════════════════════════════════════════════════════════
-
-    [Header("Heart Icon")]
-    [Tooltip("Heart icon Image — gray when inactive, colored during heartbeat windows.")]
-    [SerializeField] private Image heartIcon;
-
-    [Tooltip("Heart color when inactive (grayed out).")]
-    [SerializeField] private Color heartInactiveColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
-
-    [Tooltip("Heart color when window is ACTIVE (player should right-click now!).")]
-    [SerializeField] private Color heartActiveColor = new Color(0.9f, 0.15f, 0.15f, 1f);
-
-    [Tooltip("Heart color after a successful beat hit.")]
-    [SerializeField] private Color heartHitColor = new Color(1f, 0.4f, 0.6f, 1f);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — Colors
@@ -99,7 +82,6 @@ public class BreathingCircleUI : MonoBehaviour
         UpdateCircleScale();
         UpdateCircleColor();
         UpdateLabels();
-        UpdateHeartIcon();
         UpdateFlash();
         UpdateStreak();
     }
@@ -190,42 +172,6 @@ public class BreathingCircleUI : MonoBehaviour
                 BreathingSystem.State.Exhaling          => "G",
                 _                                       => "F"
             };
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    //  HEART ICON — only active during heartbeat windows while breathing
-    // ═══════════════════════════════════════════════════════════════════════
-
-    void UpdateHeartIcon()
-    {
-        if (heartIcon == null) return;
-
-        var state = BreathingSystem.Instance.CurrentState;
-
-        // Heart only does anything while player is actively inhaling or exhaling
-        if (state != BreathingSystem.State.Inhaling && state != BreathingSystem.State.Exhaling)
-        {
-            heartIcon.color = Color.Lerp(heartIcon.color, heartInactiveColor, Time.deltaTime * 6f);
-            return;
-        }
-
-        bool windowActive = BreathingSystem.Instance.IsHeartbeatWindowActive;
-        int beatIndex = BreathingSystem.Instance.ActiveBeatIndex;
-        int beatsHit = BreathingSystem.Instance.BeatsHitThisPhase;
-
-        if (windowActive)
-        {
-            // Was this specific beat already hit?
-            bool alreadyHit = (beatIndex == 1 && beatsHit >= 1) ||
-                              (beatIndex == 2 && beatsHit >= 2);
-
-            Color target = alreadyHit ? heartHitColor : heartActiveColor;
-            heartIcon.color = Color.Lerp(heartIcon.color, target, Time.deltaTime * 12f);
-        }
-        else
-        {
-            heartIcon.color = Color.Lerp(heartIcon.color, heartInactiveColor, Time.deltaTime * 6f);
         }
     }
 

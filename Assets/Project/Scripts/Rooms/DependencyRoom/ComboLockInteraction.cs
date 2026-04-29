@@ -60,6 +60,10 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     [SerializeField] private AudioClip   wrongSound;
     [SerializeField] private AudioClip   clickSound;
 
+    [Header("Close Button")]
+    [Tooltip("Button on the lock canvas that closes it. Must be assigned — keyboard shortcuts are disabled.")]
+    [SerializeField] private Button closeButton;
+
     [Header("Anxiety — Wrong Attempt")]
     [SerializeField] private float anxietyOnWrong = 10f;
 
@@ -85,18 +89,14 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
         }
 
         if (submitButton != null) submitButton.onClick.AddListener(CheckCombination);
+        if (closeButton  != null) closeButton.onClick.AddListener(CloseLock);
         UpdateDisplay();
     }
 
+    // Canvas is closed exclusively via the close button — no keyboard shortcut.
+
     void Update()
     {
-        if (_isOpen && Time.time - _timeOpened > 0.1f
-            && UnityEngine.InputSystem.Keyboard.current != null
-            && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            CloseLock();
-        }
-
         // Animate lid opening after solve
         if (_isSolved && coverTransform != null)
         {
@@ -109,7 +109,7 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (_isSolved) return;
-        if (_isOpen) { CloseLock(); return; }
+        if (_isOpen)   return; // already open — only the close button can dismiss it
 
         if (requireAllDigitsFound && GameStateManager.Instance != null)
         {
@@ -151,17 +151,12 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
             _isSolved = true;
             PlaySound(correctSound);
             if (feedbackText != null) feedbackText.text = "Unlocked!";
-            Debug.Log("[ComboLock] Correct combination! Key collected.");
+            Debug.Log("[ComboLock] Correct combination! Box opened — click the key to pick it up.");
 
-            // Hide the key object — player has picked it up
-            if (keyObject != null) keyObject.SetActive(false);
+            // Make sure the key is visible and interactable (BoxKeyPickup handles actual pickup)
+            if (keyObject != null) keyObject.SetActive(true);
 
-            if (DependencyRoomManager.Instance != null)
-                DependencyRoomManager.Instance.OnComboLockSolved();
-            else
-                GameStateManager.Instance?.CollectHallwayKey();
-
-            // Close the canvas — puzzle is done
+            // Close the canvas so the player can interact with the world
             CloseLock();
         }
         else
@@ -181,6 +176,9 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
         _timeOpened = Time.time;
         if (feedbackText != null) feedbackText.text = "";
         UIInputMode.Enter();
+        // Force cursor visible in case UIInputMode was in a stale state
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
     }
 
     void CloseLock()
@@ -201,9 +199,9 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     void DebugSolve()
     {
         _isSolved = true;
-        if (keyObject != null) keyObject.SetActive(false);
-        DependencyRoomManager.Instance?.OnComboLockSolved();
-        Debug.Log("[ComboLock] DEBUG: Force solved.");
+        // Keep key visible — player must still click it to collect
+        if (keyObject != null) keyObject.SetActive(true);
+        Debug.Log("[ComboLock] DEBUG: Force solved — click the key to pick it up.");
     }
 #endif
 }

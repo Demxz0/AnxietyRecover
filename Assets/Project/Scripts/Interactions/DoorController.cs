@@ -11,8 +11,8 @@ public class DoorController : MonoBehaviour, IInteractable
 
     [Header("Animation Settings")]
     [SerializeField] private float openAngle = -90f;
-    [SerializeField] private float animDuration = 0.6f;
-    [SerializeField] private Ease openEase = Ease.OutBack;
+    [SerializeField] private float animDuration = 0.9f;
+    [SerializeField] private Ease openEase = Ease.OutQuart;
     [SerializeField] private Ease closeEase = Ease.InOutSine;
 
     public enum RotationAxis { X, Y, Z }

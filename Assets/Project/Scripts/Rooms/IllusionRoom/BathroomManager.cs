@@ -61,12 +61,18 @@ public class BathroomManager : MonoBehaviour
     [Tooltip("Anxiety level at which panic attack fires (~85-90).")]
     [SerializeField] private float panicTriggerAnxiety = 90f;
 
-    // ─── State ────────────────────────────────────────────────────────────────
+    // ─── State ────────────────────────────────────────────────────────────────────────
     private bool      _playerInBathroom;
     private bool      _shakeActive;
     private bool      _panicFired;
     private Vector3   _doorOriginalPos;
     private Coroutine _bathroomRoutine;
+
+    /// <summary>
+    /// True once the bathroom effect has been triggered.
+    /// After the first trigger it will NEVER fire again, regardless of entry.
+    /// </summary>
+    private bool _hasTriggeredOnce;
 
     void Start()
     {
@@ -96,9 +102,26 @@ public class BathroomManager : MonoBehaviour
         if (!other.transform.root.CompareTag("Player")) return;
         if (_playerInBathroom) return;
 
+        // ─── Bathroom effect conditions ───────────────────────────────────────────────
+        // Fire ONLY if:
+        //   1. It has NEVER triggered before (_hasTriggeredOnce)
+        //   2. The Illusion Room is currently active
+        //   3. The switch piece has NOT been placed yet
+        bool illusionActive = IllusionRoomManager.Instance != null && IllusionRoomManager.Instance.IsIllusionActive;
+        bool switchPlaced   = GameStateManager.Instance != null && GameStateManager.Instance.IsSwitchPiecePlaced;
+
+        if (_hasTriggeredOnce || !illusionActive || switchPlaced)
+        {
+            // Normal bathroom — no effect
+            _playerInBathroom = true;
+            Debug.Log("[Bathroom] Player entered — acting as normal room (no illusion effect).");
+            return;
+        }
+
+        // All conditions met — trigger the effect for the one and only time
+        _hasTriggeredOnce = true;
         _playerInBathroom = true;
 
-        bool illusionActive = IllusionRoomManager.Instance != null && IllusionRoomManager.Instance.IsIllusionActive;
         Debug.Log($"[DEBUG][Bathroom] Player entered. Door will close in {doorCloseDelay}s. IllusionRoomManager={(IllusionRoomManager.Instance!=null?"OK":"NULL")}, IsIllusionActive={illusionActive}");
 
         IllusionRoomManager.Instance?.OnPlayerEntersBathroom();
