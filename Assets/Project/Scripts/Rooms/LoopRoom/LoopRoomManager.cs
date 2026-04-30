@@ -134,6 +134,10 @@ public class LoopRoomManager : MonoBehaviour
     {
         if (mainCamera == null)
             mainCamera = Camera.main;
+            
+        // Automatically grab the camera's starting FOV so we don't override the user's settings!
+        if (mainCamera != null)
+            normalFOV = mainCamera.fieldOfView;
 
         if (playerMovement == null)
         {
