@@ -29,6 +29,7 @@ public class GameStateManager : MonoBehaviour
     public bool DependencyRoomCompleted { get; private set; }
     public bool IllusionRoomCompleted   { get; private set; }
     public bool LoopRoomCompleted       { get; private set; }
+    public bool AllRoomsCompleted => DependencyRoomCompleted && IllusionRoomCompleted && LoopRoomCompleted;
 
     // ─── Illusion Room — Switch Piece ─────────────────────────────────────────
     /// <summary>
@@ -43,6 +44,7 @@ public class GameStateManager : MonoBehaviour
     public event Action OnDependencyRoomCompleted;
     public event Action OnIllusionRoomCompleted;
     public event Action OnLoopRoomCompleted;
+    public event Action OnAllRoomsCompleted;
 
     // ─── Unity Lifecycle ─────────────────────────────────────────────────────
     void Awake()
@@ -104,6 +106,7 @@ public class GameStateManager : MonoBehaviour
         DependencyRoomCompleted = true;
         Debug.Log("[GameState] Dependency Room COMPLETE.");
         OnDependencyRoomCompleted?.Invoke();
+        CheckAllRoomsCompleted();
     }
 
     public void CompleteIllusionRoom()
@@ -114,6 +117,7 @@ public class GameStateManager : MonoBehaviour
         SetSwitchPiecePlaced();
         Debug.Log("[GameState] Illusion Room COMPLETE.");
         OnIllusionRoomCompleted?.Invoke();
+        CheckAllRoomsCompleted();
     }
 
     /// <summary>
@@ -133,6 +137,16 @@ public class GameStateManager : MonoBehaviour
         LoopRoomCompleted = true;
         Debug.Log("[GameState] Loop Room COMPLETE.");
         OnLoopRoomCompleted?.Invoke();
+        CheckAllRoomsCompleted();
+    }
+
+    private void CheckAllRoomsCompleted()
+    {
+        if (AllRoomsCompleted)
+        {
+            Debug.Log("[GameState] ALL ROOMS COMPLETE! Triggering ending logic.");
+            OnAllRoomsCompleted?.Invoke();
+        }
     }
 
 #if UNITY_EDITOR

@@ -32,6 +32,10 @@ public class OpenRoomManager : MonoBehaviour
     [Tooltip("The WindowSunlightController for the open room window (if present).")]
     [SerializeField] private WindowSunlightController windowLight;
 
+    [Header("Ending Logic")]
+    [Tooltip("The blocking collider GameObject that prevents entering or moving in the room until all events are complete.")]
+    [SerializeField] private GameObject openRoomBlocker;
+
     // ─── State ────────────────────────────────────────────────────────────────
     private bool _playerInside;
     private bool _lightsOn;
@@ -44,19 +48,19 @@ public class OpenRoomManager : MonoBehaviour
 
     void Start()
     {
-        // Subscribe to loop room completion in case player arrives first
+        // Subscribe to all rooms completion in case player arrives first
         if (GameStateManager.Instance != null)
-            GameStateManager.Instance.OnLoopRoomCompleted += HandleLoopRoomCompleted;
+            GameStateManager.Instance.OnAllRoomsCompleted += HandleAllRoomsCompleted;
 
-        // If loop was already done before arriving here, turn on lights immediately
-        if (GameStateManager.Instance != null && GameStateManager.Instance.LoopRoomCompleted)
-            TurnOnLights();
+        // If all rooms were already done before arriving here, trigger the ending logic immediately
+        if (GameStateManager.Instance != null && GameStateManager.Instance.AllRoomsCompleted)
+            TriggerEndingLogic();
     }
 
     void OnDestroy()
     {
         if (GameStateManager.Instance != null)
-            GameStateManager.Instance.OnLoopRoomCompleted -= HandleLoopRoomCompleted;
+            GameStateManager.Instance.OnAllRoomsCompleted -= HandleAllRoomsCompleted;
     }
 
     // ─── Room Entry / Exit ────────────────────────────────────────────────────
@@ -84,22 +88,23 @@ public class OpenRoomManager : MonoBehaviour
         Debug.Log("[OpenRoom] Player exited — panic attacks unblocked.");
     }
 
-    // ─── Lights ───────────────────────────────────────────────────────────────
-    void HandleLoopRoomCompleted()
+    // ─── Lights & Ending Logic ───────────────────────────────────────────────
+    void HandleAllRoomsCompleted()
     {
-        // Fires the moment LoopRoom is finished — turn on immediately
-        TurnOnLights();
+        // Fires the moment all rooms are finished — trigger immediately
+        TriggerEndingLogic();
     }
 
-    void TurnOnLights()
+    void TriggerEndingLogic()
     {
         if (_lightsOn) return;
         _lightsOn = true;
 
+        // 1. Turn on lights
         if (openRoomLight != null)
         {
             openRoomLight.TurnOn(revealIntensity);
-            Debug.Log("[OpenRoom] Ceiling light turned ON (loop room completed).");
+            Debug.Log("[OpenRoom] Ceiling light turned ON (all rooms completed).");
         }
 
         if (windowLight != null)
@@ -107,11 +112,25 @@ public class OpenRoomManager : MonoBehaviour
             windowLight.enabled = true;
             Debug.Log("[OpenRoom] Window sunlight activated.");
         }
+
+        // 2. Disable blocking collider
+        if (openRoomBlocker != null)
+        {
+            openRoomBlocker.SetActive(false);
+            Debug.Log("[OpenRoom] Blocking collider disabled.");
+        }
+
+        // 3. Reset anxiety
+        if (AnxietyManager.Instance != null)
+        {
+            AnxietyManager.Instance.SetAnxiety(0f);
+            Debug.Log("[OpenRoom] Anxiety reset to 0 (game ending triggered).");
+        }
     }
 
 #if UNITY_EDITOR
-    [ContextMenu("DEBUG: Force Lights On")]
-    void DebugLightsOn() => TurnOnLights();
+    [ContextMenu("DEBUG: Force Ending Logic")]
+    void DebugTriggerEnding() => TriggerEndingLogic();
 
     [ContextMenu("DEBUG: Simulate Player Enter")]
     void DebugEnter()
