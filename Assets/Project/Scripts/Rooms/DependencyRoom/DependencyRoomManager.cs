@@ -39,24 +39,16 @@ public class DependencyRoomManager : MonoBehaviour
     public Stage CurrentStage { get; private set; } = Stage.WaitingForPhonePickup;
 
     // ─── Inspector ───────────────────────────────────────────────────────────
-    [Header("Phone Audio")]
-    [Tooltip("Looping phone ring (plays until player picks up).")]
-    [SerializeField] private AudioSource phoneRingSource;
-
+    [Header("NPC Audio Clips")]
     [Tooltip("NPC voice — Part 1: explains desk paper and Digit 1.")]
     [SerializeField] private AudioClip npcPart1Clip;
 
     [Tooltip("NPC voice — Part 2: hints about trash paper / password (before cut-off).")]
     [SerializeField] private AudioClip npcPart2Clip;
 
-    [Tooltip("Static / glitch sound that plays when the call cuts off.")]
-    [SerializeField] private AudioClip callCutOffClip;
-
-    [Tooltip("Busy-tone sound played when player tries to call back after cut-off.")]
-    [SerializeField] private AudioClip busyToneClip;
-
-    [Tooltip("AudioSource on the phone object used to play NPC audio.")]
-    [SerializeField] private AudioSource npcAudioSource;
+    [Header("Office Phone")]
+    [Tooltip("The OfficephoneInteraction component in the room. Started ringing after key is picked up.")]
+    [SerializeField] private OfficephoneInteraction officePhone;
 
     [Header("Anxiety — Call Cut-off")]
     [Tooltip("Anxiety added when the NPC call suddenly cuts off.")]
@@ -92,13 +84,13 @@ public class DependencyRoomManager : MonoBehaviour
 
     // ─── Stage Progression API ───────────────────────────────────────────────
 
-    /// <summary>Called by PhoneInteraction when player picks up the phone.</summary>
+    /// <summary>Called by PhoneInteraction when player picks up the cellphone.</summary>
     public void OnPhonePickedUp()
     {
         if (CurrentStage >= Stage.PhoneBusy)
         {
             Debug.Log("the number can not be reached");
-            PlayBusyTone();
+            AudioManager.Instance?.PlayOneShot(SoundID.CallbackUnavailable);
 
             // Start gradual anxiety if not already running and paper not yet read
             if (!_trashPaperRead && _gradualAnxietyRoutine == null)
@@ -190,25 +182,23 @@ public class DependencyRoomManager : MonoBehaviour
         CurrentStage = Stage.Complete;
         GameStateManager.Instance?.CollectHallwayKey();
         Debug.Log("[DependencyRoom] Key picked up — room complete!");
+
+        // Start the office phone ringing — Narrator's first speech
+        if (officePhone != null)
+            officePhone.StartRinging();
+        else
+            Debug.LogWarning("[DependencyRoom] OfficephoneInteraction not assigned — Narrator phone won't ring.");
     }
 
     // ─── Phone Helpers ────────────────────────────────────────────────────────
     public void StartPhoneRinging()
     {
-        if (phoneRingSource != null && !phoneRingSource.isPlaying)
-            phoneRingSource.Play();
+        AudioManager.Instance?.PlayLoop(SoundID.CellphoneRing);
     }
 
     public void StopPhoneRinging()
     {
-        if (phoneRingSource != null) phoneRingSource.Stop();
-    }
-
-    void PlayBusyTone()
-    {
-        if (npcAudioSource != null && busyToneClip != null)
-            npcAudioSource.PlayOneShot(busyToneClip);
-        Debug.Log("[DependencyRoom] Phone is busy — line cut off.");
+        AudioManager.Instance?.Stop(SoundID.CellphoneRing);
     }
 
     // ─── Coroutines ───────────────────────────────────────────────────────────
@@ -231,17 +221,13 @@ public class DependencyRoomManager : MonoBehaviour
 
     IEnumerator PlayNpcPart1()
     {
-        if (npcAudioSource != null && npcPart1Clip != null)
-        {
-            npcAudioSource.clip = npcPart1Clip;
-            npcAudioSource.Play();
-            yield return new WaitForSeconds(npcPart1Clip.length);
-        }
-        else
+        float duration = AudioManager.Instance != null ? AudioManager.Instance.PlayNpcClip(npcPart1Clip) : 0f;
+        if (duration <= 0f)
         {
             Debug.Log("[DependencyRoom] NPC Part 1 clip not assigned — skipping audio.");
-            yield return new WaitForSeconds(1f);
+            duration = 1f;
         }
+        yield return new WaitForSeconds(duration);
 
         // After part 1, check if the player already read the desk paper early
         if (_deskPaperReadEarly)
@@ -258,21 +244,16 @@ public class DependencyRoomManager : MonoBehaviour
 
     IEnumerator PlayNpcPart2ThenCutOff()
     {
-        if (npcAudioSource != null && npcPart2Clip != null)
-        {
-            npcAudioSource.clip = npcPart2Clip;
-            npcAudioSource.Play();
-            yield return new WaitForSeconds(npcPart2Clip.length);
-        }
-        else
+        float duration = AudioManager.Instance != null ? AudioManager.Instance.PlayNpcClip(npcPart2Clip) : 0f;
+        if (duration <= 0f)
         {
             Debug.Log("[DependencyRoom] NPC Part 2 clip not assigned — skipping to cut-off.");
-            yield return new WaitForSeconds(1f);
+            duration = 1f;
         }
+        yield return new WaitForSeconds(duration);
 
         // Play static cut-off sound
-        if (npcAudioSource != null && callCutOffClip != null)
-            npcAudioSource.PlayOneShot(callCutOffClip);
+        AudioManager.Instance?.PlayOneShot(SoundID.CallCutOff);
 
         // Anxiety spike — the call cut off!
         if (AnxietyManager.Instance != null)

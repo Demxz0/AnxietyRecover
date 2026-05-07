@@ -80,6 +80,12 @@ public class DoorController : MonoBehaviour, IInteractable
         _isAnimating = true;
         _isOpen = !_isOpen;
 
+        // Play door sound via AudioManager
+        if (_isOpen)
+            AudioManager.Instance?.PlayOneShot(SoundID.DoorOpen);
+        else
+            AudioManager.Instance?.PlayOneShot(SoundID.DoorClose);
+
         Quaternion targetRotation = _isOpen ? _openRotation : _closedRotation;
         Ease ease = _isOpen ? openEase : closeEase;
 
