@@ -6,14 +6,15 @@ using UnityEngine;
 /// Central controller for all narrative text moments in the game.
 /// Uses an object pool of WorldFloatTextRenderer prefabs — no runtime Instantiate.
 ///
-/// USAGE (from any script):
-///   NarrativeManager.Instance.Show(myNarrativeEntry);
+/// USAGE:
+///   // Text spawns at the anchor's world position:
+///   NarrativeManager.Instance.Show(myEntry, myAnchorTransform);
 ///
-/// The manager handles:
-///   • Spawning text in world-space in front of the player
-///   • Preventing overlap (queues the next entry if one is already showing)
-///   • Playing narrator voice through AudioManager
-///   • Respecting waitForNarrator flag
+///   // Text spawns in front of the player (no anchor):
+///   NarrativeManager.Instance.Show(myEntry);
+///
+/// Each individual caller passes its OWN anchor Transform so every text
+/// has its own fixed world position. The global spawnAnchor has been removed.
 ///
 /// SETUP:
 ///   1. Create a GameObject "NarrativeManager" and attach this script.
@@ -32,15 +33,22 @@ public class NarrativeManager : MonoBehaviour
     [SerializeField] private int poolSize = 5;
 
     [Header("Scene References")]
-    [Tooltip("The player's root Transform (or camera Transform) — used to position text in front of player.")]
+    [Tooltip("The player's root Transform (or camera Transform) — fallback when no anchor is given.")]
     [SerializeField] private Transform playerTransform;
     [SerializeField] private Camera mainCamera;
+
+    // ─── Queue stores both entry AND its anchor so position is preserved ──────
+    private struct QueuedEntry
+    {
+        public NarrativeEntry entry;
+        public Transform      anchor; // null = spawn in front of player
+    }
 
     // ─── Object Pool ──────────────────────────────────────────────────────────
     private List<WorldFloatTextRenderer> _pool = new List<WorldFloatTextRenderer>();
 
     // ─── Queue ────────────────────────────────────────────────────────────────
-    private Queue<NarrativeEntry> _queue = new Queue<NarrativeEntry>();
+    private Queue<QueuedEntry> _queue = new Queue<QueuedEntry>();
     private bool _isShowing;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -51,7 +59,19 @@ public class NarrativeManager : MonoBehaviour
         Instance = this;
 
         if (mainCamera == null) mainCamera = Camera.main;
-        if (playerTransform == null && Camera.main != null) playerTransform = Camera.main.transform;
+
+        // Player fallback: prefer explicit assignment → tag search → camera itself
+        if (playerTransform == null)
+        {
+            GameObject playerGO = GameObject.FindWithTag("Player");
+            if (playerGO != null)
+                playerTransform = playerGO.transform;
+            else if (mainCamera != null)
+                playerTransform = mainCamera.transform;
+        }
+
+        Debug.Log($"[NarrativeManager] playerTransform = {(playerTransform != null ? playerTransform.name + " @ " + playerTransform.position : "NULL")}  |  " +
+                  $"camera = {(mainCamera != null ? mainCamera.name : "NULL")}");
 
         BuildPool();
     }
@@ -66,7 +86,7 @@ public class NarrativeManager : MonoBehaviour
 
         for (int i = 0; i < poolSize; i++)
         {
-            var instance = Instantiate(floatTextPrefab, transform);
+            var instance = Instantiate(floatTextPrefab);
             instance.gameObject.SetActive(false);
             _pool.Add(instance);
         }
@@ -75,35 +95,36 @@ public class NarrativeManager : MonoBehaviour
     // ─── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Show a NarrativeEntry. If something is already showing, it is queued.
+    /// Show a NarrativeEntry at the given anchor's world position.
+    /// If anchor is null, text spawns in front of the player camera instead.
+    /// If something is already showing, the entry is queued.
     /// </summary>
-    public void Show(NarrativeEntry entry)
+    public void Show(NarrativeEntry entry, Transform anchor = null)
     {
         if (entry == null) return;
 
         if (_isShowing)
         {
-            _queue.Enqueue(entry);
+            _queue.Enqueue(new QueuedEntry { entry = entry, anchor = anchor });
             return;
         }
 
-        StartCoroutine(ShowRoutine(entry));
+        StartCoroutine(ShowRoutine(entry, anchor));
     }
 
     /// <summary>
     /// Immediately interrupt whatever is showing and display this entry.
     /// Use sparingly (e.g., panic attack starts — clear any floating text).
     /// </summary>
-    public void ShowImmediate(NarrativeEntry entry)
+    public void ShowImmediate(NarrativeEntry entry, Transform anchor = null)
     {
-        // Force-hide all active renderers
         foreach (var r in _pool)
             if (r.InUse) r.ForceHide();
 
         _queue.Clear();
         _isShowing = false;
 
-        if (entry != null) StartCoroutine(ShowRoutine(entry));
+        if (entry != null) StartCoroutine(ShowRoutine(entry, anchor));
     }
 
     /// <summary>Clear all queued and active text immediately.</summary>
@@ -118,11 +139,10 @@ public class NarrativeManager : MonoBehaviour
 
     // ─── Private ──────────────────────────────────────────────────────────────
 
-    IEnumerator ShowRoutine(NarrativeEntry entry)
+    IEnumerator ShowRoutine(NarrativeEntry entry, Transform anchor)
     {
         _isShowing = true;
 
-        // Get a pooled renderer
         WorldFloatTextRenderer renderer = GetAvailableRenderer();
         if (renderer == null)
         {
@@ -137,10 +157,10 @@ public class NarrativeManager : MonoBehaviour
         if (entry.narratorClip != null && AudioManager.Instance != null)
             narratorDuration = AudioManager.Instance.PlayNarratorClip(entry.narratorClip);
 
-        // Show the text
-        renderer.Show(entry, playerTransform, mainCamera);
+        // anchor != null → use that exact world position; null → spawn in front of player
+        Vector3? overridePos = anchor != null ? anchor.position : (Vector3?)null;
+        renderer.Show(entry, playerTransform, mainCamera, overridePos);
 
-        // Wait: for narrator finish (if flagged) OR for the renderer to finish
         float waitTime = entry.waitForNarrator && narratorDuration > 0f
             ? narratorDuration + entry.fadeOutTime
             : entry.fadeInTime + (entry.displayDuration > 0f ? entry.displayDuration : Mathf.Max(narratorDuration, 3f)) + entry.fadeOutTime;
@@ -154,7 +174,10 @@ public class NarrativeManager : MonoBehaviour
     void ProcessQueue()
     {
         if (_queue.Count > 0)
-            StartCoroutine(ShowRoutine(_queue.Dequeue()));
+        {
+            QueuedEntry next = _queue.Dequeue();
+            StartCoroutine(ShowRoutine(next.entry, next.anchor));
+        }
     }
 
     WorldFloatTextRenderer GetAvailableRenderer()
@@ -169,11 +192,13 @@ public class NarrativeManager : MonoBehaviour
 #if UNITY_EDITOR
     [Header("Editor Test")]
     [SerializeField] private NarrativeEntry testEntry;
+    [Tooltip("Optional anchor for the test entry — leave None to spawn in front of player.")]
+    [SerializeField] private Transform testAnchor;
 
     [ContextMenu("Test: Show Entry")]
     void TestShow()
     {
-        if (testEntry != null) Show(testEntry);
+        if (testEntry != null) Show(testEntry, testAnchor);
         else Debug.Log("[NarrativeManager] Assign testEntry in Inspector first.");
     }
 

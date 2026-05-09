@@ -4,6 +4,7 @@ using UnityEngine;
 /// Place this on an empty GameObject with a BoxCollider (IsTrigger = true)
 /// at the entrance of the Expanding Room (Kitchen).
 /// When the player walks in, the agoraphobia stretch effect begins.
+/// Also fires a one-time breathing hint and sets the InnerVoiceManager to the Loop zone.
 /// </summary>
 public class LoopRoomEntryTrigger : MonoBehaviour
 {
@@ -23,6 +24,13 @@ public class LoopRoomEntryTrigger : MonoBehaviour
                 LoopRoomManager.Instance.CloseAndLockKitchenDoor();
                 Debug.Log("[ExpandingRoom] Player entered the kitchen. Expanding effect started, door closing.");
             }
+
+            // Guide hint — breathing is the only way out
+            ObjectiveHintManager.Instance?.ShowHint(
+                "The room feels endless... Stand still and breathe to find your way out.", 10f);
+
+            // Switch inner voices to Loop Room set
+            InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.LoopRoom);
         }
     }
 }

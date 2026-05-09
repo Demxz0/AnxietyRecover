@@ -36,6 +36,14 @@ public class OpenRoomManager : MonoBehaviour
     [Tooltip("The blocking collider GameObject that prevents entering or moving in the room until all events are complete.")]
     [SerializeField] private GameObject openRoomBlocker;
 
+    [Header("Narrator — Third Speech (Ending)")]
+    [Tooltip("NarrativeEntry that plays when all 3 rooms are completed and the ending triggers.")]
+    [SerializeField] private NarrativeEntry narratorThirdEntry;
+
+    [Tooltip("World position where the narrator ending text will appear. " +
+             "Create an empty child GO, place it where you want the text, and assign it here.")]
+    [SerializeField] private Transform textAnchor;
+
     // ─── State ────────────────────────────────────────────────────────────────
     private bool _playerInside;
     private bool _lightsOn;
@@ -126,6 +134,12 @@ public class OpenRoomManager : MonoBehaviour
             AnxietyManager.Instance.SetAnxiety(0f);
             Debug.Log("[OpenRoom] Anxiety reset to 0 (game ending triggered).");
         }
+
+        // 4. Narrator's third speech — the final inner voice moment
+        if (narratorThirdEntry != null && NarrativeManager.Instance != null)
+            NarrativeManager.Instance.Show(narratorThirdEntry, textAnchor);
+        else if (narratorThirdEntry == null)
+            Debug.LogWarning("[OpenRoom] narratorThirdEntry not assigned — Narrator 3rd speech won't play.");
     }
 
 #if UNITY_EDITOR

@@ -47,6 +47,17 @@ public class BathroomManager : MonoBehaviour
     [Tooltip("Seconds after the player enters before the door closes behind them.")]
     [SerializeField] private float doorCloseDelay = 1.5f;
 
+    [Header("Floating Text — Safe Window")]
+    [Tooltip("Inner-voice floating text shown while the player waits in the bathroom (before knocking).")]
+    [SerializeField] private NarrativeEntry bathroomWaitingEntry;
+
+    [Tooltip("Seconds after the door closes before showing the waiting floating text.")]
+    [SerializeField] private float waitingTextDelay = 3f;
+
+    [Tooltip("World position where the bathroom waiting text will appear. " +
+             "Create an empty child GO inside the bathroom, place it at the desired spot, and assign it here.")]
+    [SerializeField] private Transform textAnchor;
+
     [Header("Shake Settings")]
     [Tooltip("Max door shake offset in world units.")]
     [SerializeField] private float shakeMagnitude = 0.02f;
@@ -158,8 +169,18 @@ public class BathroomManager : MonoBehaviour
 
         if (!_playerInBathroom) { Debug.Log("[DEBUG][Bathroom] Player left during safe window — routine ends."); yield break; }
 
-        // Wait out the remaining safe window
-        yield return new WaitForSeconds(remaining);
+        // Show inner-voice floating text after a short pause — the moment of anxious stillness
+        if (bathroomWaitingEntry != null && NarrativeManager.Instance != null)
+        {
+            yield return new WaitForSeconds(waitingTextDelay);
+            if (_playerInBathroom) // still in bathroom after the delay
+                NarrativeManager.Instance.Show(bathroomWaitingEntry, textAnchor);
+        }
+
+        // Wait out the rest of the safe window
+        float textWait = (bathroomWaitingEntry != null) ? waitingTextDelay : 0f;
+        float finalRemaining = Mathf.Max(0f, remaining - textWait);
+        yield return new WaitForSeconds(finalRemaining);
 
         if (!_playerInBathroom) { Debug.Log("[DEBUG][Bathroom] Player left during safe window — routine ends."); yield break; }
 
@@ -193,6 +214,10 @@ public class BathroomManager : MonoBehaviour
                 if (bathroomDoor != null) bathroomDoor.Unlock();
                 StopShaking();
                 Debug.Log("[DEBUG][Bathroom] Panic over — door unlocked, shake stopped.");
+
+                // Guide hint: player now needs to find the missing light switch piece
+                ObjectiveHintManager.Instance?.ShowHint(
+                    "The door is open. Find the missing piece of the light switch.", 8f);
             }
 
             yield return null;

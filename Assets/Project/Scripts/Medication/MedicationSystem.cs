@@ -136,6 +136,12 @@ public class MedicationSystem : MonoBehaviour
     /// <summary>Fires when a pill is taken. Passes pills remaining.</summary>
     public event System.Action<int> OnPillTaken;
 
+    /// <summary>
+    /// Fires the first time the player picks up the pills container in the start room.
+    /// The MedicationHUD listens to this to show itself.
+    /// </summary>
+    public event System.Action OnUnlocked;
+
     // ═══════════════════════════════════════════════════════════════════════
     //  PRIVATE STATE
     // ═══════════════════════════════════════════════════════════════════════
@@ -143,6 +149,7 @@ public class MedicationSystem : MonoBehaviour
     private int   _pillsRemaining;
     private float _cooldownTimer;
     private bool  _isDrowsy;
+    private bool  _isUnlocked;          // false until the pills container is picked up
     private Vignette _vignette;
     private Coroutine _drowsinessRoutine;
     private float _baseVignetteIntensity; // store pre-drowsiness vignette
@@ -173,6 +180,9 @@ public class MedicationSystem : MonoBehaviour
         if (_cooldownTimer > 0f)
             _cooldownTimer -= Time.deltaTime;
 
+        // Block input until the pills container has been picked up
+        if (!_isUnlocked) return;
+
         // Input check — do not consume medication while a canvas is open
         Keyboard kb = Keyboard.current;
         if (kb != null && !UIInputMode.IsInUI && kb[medicationKey].wasPressedThisFrame)
@@ -182,6 +192,22 @@ public class MedicationSystem : MonoBehaviour
     // ═══════════════════════════════════════════════════════════════════════
     //  PUBLIC API
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Called by PillsContainerPickup when the player picks up the pills container
+    /// for the first time. Activates the medication system and shows the HUD.
+    /// Safe to call multiple times — only unlocks once.
+    /// </summary>
+    public void Unlock()
+    {
+        if (_isUnlocked) return;
+        _isUnlocked = true;
+        Debug.Log("[MedicationSystem] Unlocked — pills container picked up.");
+        OnUnlocked?.Invoke();
+    }
+
+    /// <summary>True once the pills container has been picked up.</summary>
+    public bool IsUnlocked => _isUnlocked;
 
     /// <summary>
     /// Attempt to take medication. Called by input or by other systems.

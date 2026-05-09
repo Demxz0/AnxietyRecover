@@ -67,6 +67,7 @@ public class DependencyRoomManager : MonoBehaviour
     // ─── Private State ────────────────────────────────────────────────────────
     private bool _trashPaperRead;
     private bool _deskPaperReadEarly;   // true if player read the desk paper before the phone call
+    private bool _helpGoneHintShown;    // true once the "help is gone" hint has been shown
     private Coroutine _gradualAnxietyRoutine;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -91,6 +92,14 @@ public class DependencyRoomManager : MonoBehaviour
         {
             Debug.Log("the number can not be reached");
             AudioManager.Instance?.PlayOneShot(SoundID.CallbackUnavailable);
+
+            // "Help is gone" hint — fires only on the first callback attempt
+            if (!_helpGoneHintShown)
+            {
+                _helpGoneHintShown = true;
+                ObjectiveHintManager.Instance?.ShowHint(
+                    "They're not picking up. Help isn't coming. I need to figure this out myself.", 10f);
+            }
 
             // Start gradual anxiety if not already running and paper not yet read
             if (!_trashPaperRead && _gradualAnxietyRoutine == null)
@@ -261,6 +270,10 @@ public class DependencyRoomManager : MonoBehaviour
 
         CurrentStage = Stage.PhoneBusy;
         Debug.Log("[DependencyRoom] Stage 4 — call cut off! Player on their own.");
+
+        // Short delay, then the player's inner voice: "I should call them back"
+        yield return new WaitForSeconds(1.5f);
+        AudioManager.Instance?.PlayOneShot(SoundID.PlayerVoiceCallBack);
 
         // After the cut-off, player needs computer → advance internally
         yield return new WaitForSeconds(1f);

@@ -19,9 +19,12 @@ public class OfficephoneInteraction : MonoBehaviour, IInteractable
 {
     [Header("Narrator Entry")]
     [Tooltip("NarrativeEntry that plays when the player answers the office phone. " +
-             "This is the Narrator's very first speech. Assign a NarrativeEntry with " +
-             "the narrator AudioClip and the spoken text set to empty (or a short reflection).")]
+             "This is the Narrator's very first speech.")]
     [SerializeField] private NarrativeEntry narratorFirstEntry;
+
+    [Tooltip("World position where the narrator text will appear. " +
+             "Create an empty child GO, place it where you want the text, and assign it here.")]
+    [SerializeField] private Transform textAnchor;
 
     [Header("Ring Delay")]
     [Tooltip("Seconds after key pickup before the office phone starts ringing.")]
@@ -61,10 +64,10 @@ public class OfficephoneInteraction : MonoBehaviour, IInteractable
         // Stop ring
         AudioManager.Instance?.Stop(SoundID.OfficephoneRing);
 
-        // Trigger Narrator's first speech
+        // Trigger Narrator's first speech at the assigned anchor position
         if (narratorFirstEntry != null && NarrativeManager.Instance != null)
         {
-            NarrativeManager.Instance.Show(narratorFirstEntry);
+            NarrativeManager.Instance.Show(narratorFirstEntry, textAnchor);
             Debug.Log("[OfficephoneInteraction] Player answered — Narrator begins first speech.");
         }
         else

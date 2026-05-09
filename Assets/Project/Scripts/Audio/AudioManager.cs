@@ -75,6 +75,10 @@ public class AudioManager : MonoBehaviour
     [Tooltip("AudioSource used for Narrator voice clips (assigned at runtime via PlayNarratorClip).")]
     [SerializeField] private AudioSource narratorVoiceSource;
 
+    [Tooltip("Player inner-voice clip: played after the NPC call cuts off. " +
+             "Should sound like: 'I should call them back...'.")]
+    [SerializeField] private AudioClip playerVoiceCallBackClip;
+
     [Header("Negative Voices")]
     [Tooltip("A pool of negative inner-voice clips. A random one is chosen each time.")]
     [SerializeField] private AudioClip[] negativeVoiceClips;
@@ -489,6 +493,7 @@ public class AudioManager : MonoBehaviour
         SoundID.Exhale                => exhaleClip,
         SoundID.Heartbeat             => heartbeatClip,
         SoundID.PeopleJudging         => peopleJudgingClip,
+        SoundID.PlayerVoiceCallBack    => playerVoiceCallBackClip,
         _                             => null
     };
 

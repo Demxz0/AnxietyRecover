@@ -5,27 +5,36 @@ using UnityEngine;
 ///
 /// CREATE: Right-click in Project → Create → Narrative → Narrative Entry
 ///
+/// STYLE GUIDE:
+///   Narrator   — The external narrator voice. Has an AudioClip. Pinned at an anchor.
+///                Large warm text. No typewriter. Stays for the full audio length.
+///   Discovery  — Inner-voice thought on discovery. White, large, drifts upward. Typewriter on.
+///   Calming    — Gentle inner-voice. Soft blue, smaller, drifts slowly. Typewriter on.
+///
 /// FIELDS:
-///   text            — The words that will float in front of the player.
-///   style           — Controls visual appearance (font, color, animation speed).
-///   narratorClip    — Optional narrator voice clip to play alongside the text.
-///   displayDuration — How long the text stays fully visible (seconds). 0 = auto (voice length).
+///   text            — The words shown floating in the world.
+///   style           — Controls visual appearance and behaviour (Narrator / Discovery / Calming).
+///   narratorClip    — AudioClip to play (only used for Narrator style entries).
+///   displayDuration — How long text stays fully visible. 0 = auto (clip length or 3s).
 ///   fadeInTime      — Seconds to fade in.
 ///   fadeOutTime     — Seconds to fade out.
-///   typewriterReveal— If true, text appears letter by letter.
-///   waitForNarrator — If true, NarrativeManager will not show another entry until this voice finishes.
+///   typewriterReveal— If true, text appears letter by letter (auto-off for Narrator style).
+///   waitForNarrator — If true, NarrativeManager will not show the next entry until this clip ends.
 /// </summary>
 [CreateAssetMenu(menuName = "Narrative/Narrative Entry", fileName = "NewNarrativeEntry")]
 public class NarrativeEntry : ScriptableObject
 {
     [TextArea(3, 8)]
-    [Tooltip("The text that will float in front of the player.")]
+    [Tooltip("The text shown floating in the world.")]
     public string text;
 
-    [Tooltip("Visual style for this entry.")]
+    [Tooltip("Visual style for this entry.\n" +
+             "• Narrator  — External voice. Warm, large, pinned. Use with an AudioClip.\n" +
+             "• Discovery — Inner-voice on discovery. White, drifts up.\n" +
+             "• Calming   — Gentle inner-voice. Soft blue, slow drift.")]
     public NarrativeStyle style = NarrativeStyle.Discovery;
 
-    [Tooltip("Optional narrator voice clip to play with this entry.")]
+    [Tooltip("AudioClip to play alongside this entry (Narrator style only — leave empty for inner-voice).")]
     public AudioClip narratorClip;
 
     [Tooltip("How many seconds the text stays fully visible. 0 = use narrator clip length, or 3s default.")]
@@ -37,8 +46,8 @@ public class NarrativeEntry : ScriptableObject
     [Tooltip("Seconds for the text to fade out.")]
     public float fadeOutTime = 1f;
 
-    [Tooltip("If true, text appears one character at a time (typewriter effect).")]
-    public bool typewriterReveal = false;
+    [Tooltip("If true, text appears one character at a time (typewriter effect). Auto-disabled for Narrator style.")]
+    public bool typewriterReveal = true;
 
     [Tooltip("If true, NarrativeManager will not queue the next entry until this narrator clip finishes.")]
     public bool waitForNarrator = false;
@@ -46,13 +55,27 @@ public class NarrativeEntry : ScriptableObject
 
 /// <summary>
 /// Visual style variants for NarrativeEntry.
-/// Controls font size, color, and float behavior in WorldFloatTextRenderer.
+/// Controls font size, color, drift behaviour, and whether the text is pinned.
 /// </summary>
 public enum NarrativeStyle
 {
-    /// <summary>White, large text — used for discoveries, paper content, room entries.</summary>
+    /// <summary>
+    /// External narrator voice.
+    /// Warm off-white, large text. PINNED at the assigned anchor (no drift/sway).
+    /// Always faces camera. Designed to sync with an AudioClip.
+    /// Typewriter is disabled so text appears instantly with the voice.
+    /// </summary>
+    Narrator,
+
+    /// <summary>
+    /// Inner-voice moment on a discovery.
+    /// White, large text. Drifts upward. Typewriter on.
+    /// </summary>
     Discovery,
 
-    /// <summary>Soft blue/white, slow drift — used for calming moments and narrator reflections.</summary>
+    /// <summary>
+    /// Gentle inner-voice thought.
+    /// Soft blue-white, smaller text. Slow drift. Typewriter on.
+    /// </summary>
     Calming,
 }
