@@ -7,6 +7,7 @@ public enum AnxietyLevel
     Calm,
     MildAnxiety,
     HighAnxiety,
+    ExtremeAnxiety,
     Panic
 }
 
@@ -20,11 +21,13 @@ public class AnxietyManager : MonoBehaviour
 
     [Header("Level Thresholds (0 – 100)")]
     [Tooltip("Calm → Mild Anxiety")]
-    [SerializeField] private float mildThreshold  = 25f;
+    [SerializeField] private float mildThreshold    = 20f;
     [Tooltip("Mild → High Anxiety")]
-    [SerializeField] private float highThreshold  = 60f;
-    [Tooltip("High → Panic level (bar turns red, but panic ATTACK not yet triggered)")]
-    [SerializeField] private float panicThreshold = 85f;
+    [SerializeField] private float highThreshold    = 40f;
+    [Tooltip("High → Extreme Anxiety")]
+    [SerializeField] private float extremeThreshold = 65f;
+    [Tooltip("Extreme → Panic level (bar turns red, but panic ATTACK not yet triggered)")]
+    [SerializeField] private float panicThreshold   = 85f;
 
     [Header("Panic Attack — Bar Triggered")]
     [Tooltip("Anxiety must reach this value to trigger a bar-based panic attack. " +
@@ -152,10 +155,11 @@ public class AnxietyManager : MonoBehaviour
     {
         float target = _currentLevel switch
         {
-            AnxietyLevel.Panic       => panicThreshold - 1f,
-            AnxietyLevel.HighAnxiety => highThreshold  - 1f,
-            AnxietyLevel.MildAnxiety => mildThreshold  - 1f,
-            _                        => 0f
+            AnxietyLevel.Panic          => panicThreshold   - 1f,
+            AnxietyLevel.ExtremeAnxiety => extremeThreshold - 1f,
+            AnxietyLevel.HighAnxiety    => highThreshold    - 1f,
+            AnxietyLevel.MildAnxiety    => mildThreshold    - 1f,
+            _                           => 0f
         };
 
         Debug.Log($"[AnxietyManager] ReduceOneLevel: {_currentLevel} ({_anxietyValue:F0}) → {target:F0}");
@@ -250,9 +254,10 @@ public class AnxietyManager : MonoBehaviour
 
     AnxietyLevel EvaluateLevel(float value)
     {
-        if (value >= panicThreshold) return AnxietyLevel.Panic;
-        if (value >= highThreshold)  return AnxietyLevel.HighAnxiety;
-        if (value >= mildThreshold)  return AnxietyLevel.MildAnxiety;
+        if (value >= panicThreshold)   return AnxietyLevel.Panic;
+        if (value >= extremeThreshold) return AnxietyLevel.ExtremeAnxiety;
+        if (value >= highThreshold)    return AnxietyLevel.HighAnxiety;
+        if (value >= mildThreshold)    return AnxietyLevel.MildAnxiety;
         return AnxietyLevel.Calm;
     }
 

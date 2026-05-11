@@ -87,6 +87,7 @@ public class InteractableHandIcon : MonoBehaviour
         if (_permanentlyHidden || _player == null || canvasGroup == null) return;
 
         float dist = Vector3.Distance(transform.position, _player.position);
+
         bool shouldShow = dist <= showRadius;
 
         if (shouldShow && !_visible)
@@ -102,10 +103,12 @@ public class InteractableHandIcon : MonoBehaviour
             _fadeRoutine = StartCoroutine(FadeTo(0f, fadeOutDuration));
         }
 
-        // Billboard — always face camera
-        if (_cam != null && handIconCanvas != null)
+        // Match the image's X-axis pitch to the camera, keeping Canvas fixed
+        if (_cam != null && handImage != null)
         {
-            handIconCanvas.transform.rotation = _cam.transform.rotation;
+            Vector3 imgEuler = handImage.transform.eulerAngles;
+            imgEuler.x = _cam.transform.eulerAngles.x;
+            handImage.transform.eulerAngles = imgEuler;
         }
 
         // Bob animation

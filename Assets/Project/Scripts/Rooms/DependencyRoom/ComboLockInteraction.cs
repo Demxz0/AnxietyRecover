@@ -14,12 +14,13 @@ using UnityEngine.UI;
 /// SETUP:
 ///   1. Attach to the combo lock box 3D object.
 ///   2. Create a puzzle Canvas with:
-///        - 3 digit Text labels + UP/DOWN buttons per digit.
+///        - 3 digit Image UI elements + UP/DOWN buttons per digit.
 ///        - A Submit Button.
 ///        - A Result Text for feedback.
 ///   3. Assign all references in the Inspector.
 ///   4. Assign 'keyObject' to the 3D key mesh inside the lockbox — it hides on solve.
 ///   5. Default combination: 4, 2, 7. Change via correctCombination array.
+///   6. Assign 10 sprites (digits 0-9) to 'digitSprites'. Index 0 = sprite for 0, etc.
 /// </summary>
 public class ComboLockInteraction : MonoBehaviour, IInteractable
 {
@@ -38,8 +39,11 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     [Header("Puzzle Canvas")]
     [SerializeField] private GameObject lockCanvas;
 
-    [Tooltip("3 Text labels — one per digit slot.")]
-    [SerializeField] private Text[] digitTexts = new Text[3];
+    [Tooltip("10 sprites representing digits 0-9 in order. Index 0 = sprite for 0, index 9 = sprite for 9.")]
+    [SerializeField] private Sprite[] digitSprites = new Sprite[10];
+
+    [Tooltip("3 UI Image components — one per digit slot. Each displays the sprite for the current digit.")]
+    [SerializeField] private Image[] digitImages = new Image[3];
 
     [Tooltip("3 UP buttons — each increments the corresponding digit.")]
     [SerializeField] private Button[] upButtons = new Button[3];
@@ -135,8 +139,12 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     void UpdateDisplay()
     {
         for (int i = 0; i < 3; i++)
-            if (digitTexts.Length > i && digitTexts[i] != null)
-                digitTexts[i].text = _current[i].ToString();
+        {
+            if (digitImages.Length <= i || digitImages[i] == null) continue;
+            int v = _current[i];
+            if (digitSprites != null && digitSprites.Length > v && digitSprites[v] != null)
+                digitImages[i].sprite = digitSprites[v];
+        }
     }
 
     void CheckCombination()
