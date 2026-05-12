@@ -98,7 +98,7 @@ public class DependencyRoomManager : MonoBehaviour
             {
                 _helpGoneHintShown = true;
                 ObjectiveHintManager.Instance?.ShowHint(
-                    "They're not picking up. Help isn't coming. I need to figure this out myself.", 10f);
+                    "المساعدة انقطعت , عليك الإعتماد على نفسك لإيجاد المفتاح", 10f);
             }
 
             // Start gradual anxiety if not already running and paper not yet read

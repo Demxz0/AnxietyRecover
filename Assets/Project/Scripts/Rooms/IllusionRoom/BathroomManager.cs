@@ -99,9 +99,9 @@ public class BathroomManager : MonoBehaviour
     {
         if (_shakeActive && bathroomDoorTransform != null)
         {
-            float x = Mathf.Sin(Time.time * shakeSpeed)             * shakeMagnitude;
-            float y = Mathf.Sin(Time.time * shakeSpeed * 0.7f + 1f) * shakeMagnitude * 0.5f;
-            bathroomDoorTransform.localPosition = _doorOriginalPos + new Vector3(x, y, 0f);
+            float z = Mathf.Sin(Time.time * shakeSpeed)             * shakeMagnitude;
+            //float y = Mathf.Sin(Time.time * shakeSpeed * 0.7f + 1f) * shakeMagnitude * 0.5f;
+            bathroomDoorTransform.localPosition = _doorOriginalPos + new Vector3(0f, 0f, z);
         }
     }
 
@@ -217,7 +217,7 @@ public class BathroomManager : MonoBehaviour
 
                 // Guide hint: player now needs to find the missing light switch piece
                 ObjectiveHintManager.Instance?.ShowHint(
-                    "The door is open. Find the missing piece of the light switch.", 8f);
+                    "ابحث عن القطعة المفقودة من الضوء لإشعاله", 8f);
             }
 
             yield return null;

@@ -72,10 +72,14 @@ public class ObjectiveHintManager : MonoBehaviour
 
     void ComputePositions()
     {
-        _shownPosition  = Vector2.zero;
+        if (hintPanel != null)
+            _shownPosition = hintPanel.anchoredPosition;
+        else
+            _shownPosition = Vector2.zero;
+
         _hiddenPosition = anchorRight
-            ? new Vector2(slideDistance, 0f)   // slides in from right
-            : new Vector2(-slideDistance, 0f); // slides in from left
+            ? new Vector2(_shownPosition.x + slideDistance, _shownPosition.y)   // slides in from right
+            : new Vector2(_shownPosition.x - slideDistance, _shownPosition.y); // slides in from left
     }
 
     // ─── Public API ───────────────────────────────────────────────────────────

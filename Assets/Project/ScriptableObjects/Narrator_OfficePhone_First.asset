@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NarrativeEntry
   text: 
   style: 1
-  narratorClip: {fileID: 0}
+  narratorClip: {fileID: 8300000, guid: fbb8171d50f36fd41a9953d3bd487be4, type: 3}
   displayDuration: 0
   fadeInTime: 0.5
   fadeOutTime: 1

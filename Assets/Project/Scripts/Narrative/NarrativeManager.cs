@@ -157,9 +157,10 @@ public class NarrativeManager : MonoBehaviour
         if (entry.narratorClip != null && AudioManager.Instance != null)
             narratorDuration = AudioManager.Instance.PlayNarratorClip(entry.narratorClip);
 
-        // anchor != null → use that exact world position; null → spawn in front of player
+        // anchor != null → use that exact world position and rotation; null → spawn in front of player
         Vector3? overridePos = anchor != null ? anchor.position : (Vector3?)null;
-        renderer.Show(entry, playerTransform, mainCamera, overridePos);
+        Quaternion? overrideRot = anchor != null ? anchor.rotation : (Quaternion?)null;
+        renderer.Show(entry, playerTransform, mainCamera, overridePos, overrideRot);
 
         float waitTime = entry.waitForNarrator && narratorDuration > 0f
             ? narratorDuration + entry.fadeOutTime

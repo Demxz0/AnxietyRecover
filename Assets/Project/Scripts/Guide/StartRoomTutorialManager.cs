@@ -37,6 +37,10 @@ public class StartRoomTutorialManager : MonoBehaviour
     [Tooltip("Seconds for the text to fade out.")]
     [SerializeField] private float fadeOutTime = 1f;
 
+    [Header("Position")]
+    [Tooltip("Optional: Drag an empty GameObject here to spawn the text at its exact position and rotation. Leave empty to spawn in front of the player.")]
+    [SerializeField] private Transform textAnchor;
+
     // ── State ─────────────────────────────────────────────────────────────────
 
     private bool _hasShown;
@@ -83,7 +87,7 @@ public class StartRoomTutorialManager : MonoBehaviour
         entry.waitForNarrator = false;
         entry.style           = NarrativeStyle.Calming; // soft blue/white — fits a quiet thought
 
-        NarrativeManager.Instance.Show(entry);
+        NarrativeManager.Instance.Show(entry, textAnchor);
 
         // Clean up the temporary asset after it would have finished
         StartCoroutine(DestroyEntryAfterDelay(entry, fadeInTime + displayDuration + fadeOutTime + 1f));

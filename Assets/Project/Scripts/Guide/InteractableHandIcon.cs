@@ -103,13 +103,6 @@ public class InteractableHandIcon : MonoBehaviour
             _fadeRoutine = StartCoroutine(FadeTo(0f, fadeOutDuration));
         }
 
-        // Match the image's X-axis pitch to the camera, keeping Canvas fixed
-        if (_cam != null && handImage != null)
-        {
-            Vector3 imgEuler = handImage.transform.eulerAngles;
-            imgEuler.x = _cam.transform.eulerAngles.x;
-            handImage.transform.eulerAngles = imgEuler;
-        }
 
         // Bob animation
         if (_currentAlpha > 0f && handIconCanvas != null)

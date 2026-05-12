@@ -93,11 +93,11 @@ public class WorldFloatTextRenderer : MonoBehaviour
     /// Called by NarrativeManager to display this instance.
     /// Pass worldPosition to pin text to an exact spot; leave null for relative-to-camera spawn.
     /// </summary>
-    public void Show(NarrativeEntry entry, Transform player, Camera cam, Vector3? worldPosition = null)
+    public void Show(NarrativeEntry entry, Transform player, Camera cam, Vector3? worldPosition = null, Quaternion? worldRotation = null)
     {
         if (_showRoutine != null) StopCoroutine(_showRoutine);
         gameObject.SetActive(true); // Must activate BEFORE StartCoroutine — inactive objects can't run coroutines
-        _showRoutine = StartCoroutine(ShowRoutine(entry, player, cam, worldPosition));
+        _showRoutine = StartCoroutine(ShowRoutine(entry, player, cam, worldPosition, worldRotation));
     }
 
     /// <summary>Force-hides this instance immediately and returns it to the pool.</summary>
@@ -109,16 +109,18 @@ public class WorldFloatTextRenderer : MonoBehaviour
 
     // ─── Show Coroutine ───────────────────────────────────────────────────────
 
-    IEnumerator ShowRoutine(NarrativeEntry entry, Transform player, Camera cam, Vector3? worldPosition = null)
+    IEnumerator ShowRoutine(NarrativeEntry entry, Transform player, Camera cam, Vector3? worldPosition = null, Quaternion? worldRotation = null)
     {
         _inUse = true;
         _swayOffset = Random.Range(0f, Mathf.PI * 2f);
 
-        // ── Position ──────────────────────────────────────────────────────────
+        // ── Position & Rotation ───────────────────────────────────────────────
         if (worldPosition.HasValue)
         {
-            // Exact anchor position set by the caller — no math needed
+            // Exact anchor position and rotation set by the caller
             transform.position = worldPosition.Value;
+            if (worldRotation.HasValue)
+                transform.rotation = worldRotation.Value;
         }
         else
         {
@@ -133,10 +135,26 @@ public class WorldFloatTextRenderer : MonoBehaviour
             forward = forward.normalized;
             Vector3 origin = cam != null ? cam.transform.position : player.position;
             transform.position = origin + forward * spawnDistance + Vector3.up * spawnHeightOffset;
+
+            // Immediately look at camera so it doesn't have leftover rotation from the pool
+            if (cam != null)
+                transform.LookAt(transform.position + cam.transform.rotation * Vector3.forward,
+                                 cam.transform.rotation * Vector3.up);
         }
 
         // Apply style
         ApplyStyle(entry.style);
+
+        // Turn on auto-sizing temporarily to let TextMeshPro calculate the best fit
+        textMesh.enableWordWrapping = true;
+        textMesh.enableAutoSizing = true;
+        textMesh.text = entry.text;
+        textMesh.ForceMeshUpdate();
+
+        // Lock the font size to the calculated size so it doesn't shrink during the typewriter effect
+        float calculatedSize = textMesh.fontSize;
+        textMesh.enableAutoSizing = false;
+        textMesh.fontSize = calculatedSize;
 
         // Narrator: text appears instantly so the voice delivers it — no typewriter.
         // Inner-voice styles: typewriter if the entry requests it.
@@ -166,27 +184,11 @@ public class WorldFloatTextRenderer : MonoBehaviour
             ? entry.displayDuration
             : (entry.narratorClip != null ? entry.narratorClip.length : 3f);
 
-        // Narrator style and anchored entries are always pinned — no drift or sway.
-        // Inner-voice entries with no anchor float freely upward.
-        bool pinned = worldPosition.HasValue || entry.style == NarrativeStyle.Narrator;
-
+        // Text is now completely static while holding (no billboarding or floating)
         float elapsed = 0f;
         while (elapsed < holdTime)
         {
             elapsed += Time.deltaTime;
-
-            if (!pinned)
-            {
-                // Billboard — always face camera
-                if (cam != null)
-                    transform.LookAt(transform.position + cam.transform.rotation * Vector3.forward,
-                                     cam.transform.rotation * Vector3.up);
-
-                // Float upward + gentle sway
-                float sway = Mathf.Sin(Time.time * 0.6f + _swayOffset) * swayAmplitude;
-                transform.position += new Vector3(sway, floatSpeed * Time.deltaTime, 0f);
-            }
-
             yield return null;
         }
 
@@ -228,17 +230,18 @@ public class WorldFloatTextRenderer : MonoBehaviour
         {
             case NarrativeStyle.Narrator:
                 textMesh.color    = narratorColor;
-                textMesh.fontSize = narratorFontSize;
+                textMesh.fontSizeMax = narratorFontSize;
                 break;
             case NarrativeStyle.Discovery:
                 textMesh.color    = discoveryColor;
-                textMesh.fontSize = discoveryFontSize;
+                textMesh.fontSizeMax = discoveryFontSize;
                 break;
             case NarrativeStyle.Calming:
                 textMesh.color    = calmingColor;
-                textMesh.fontSize = calmingFontSize;
+                textMesh.fontSizeMax = calmingFontSize;
                 break;
         }
+        textMesh.fontSizeMin = 18f; // Prevent it from becoming completely unreadable
     }
 
     void ReturnToPool()

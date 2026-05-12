@@ -57,6 +57,9 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip callCutOffClip;
     [SerializeField] private AudioClip callbackUnavailableClip;
 
+    [Tooltip("Specific volume multiplier for when the phone is ringing. 1.0 is full volume, 0.3 is quiet.")]
+    [SerializeField] [Range(0f, 1f)] private float phoneRingVolume = 0.4f;
+
     [Header("Environment Sounds")]
     [SerializeField] private AudioClip paperSoundClip;
     [SerializeField] private AudioClip doorKnockClip;
@@ -142,6 +145,15 @@ public class AudioManager : MonoBehaviour
     /// <summary>The SoundID currently playing on the loop source. SoundID.None if silent.</summary>
     public SoundID CurrentLoop => _currentLoop;
 
+    //  MUSIC TARGET VOLUMES
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private float _mainMusicTargetVol = 1f;
+    private float _tenseMusicTargetVol = 1f;
+    private float _openRoomMusicTargetVol = 1f;
+
+    private float _defaultLoopVol = 1f;
+
     // ═══════════════════════════════════════════════════════════════════════
     //  UNITY LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════════
@@ -151,6 +163,12 @@ public class AudioManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        // Store original volumes set in Inspector to use as max limits
+        if (mainMusicSource != null) _mainMusicTargetVol = mainMusicSource.volume;
+        if (tenseMusicSource != null) _tenseMusicTargetVol = tenseMusicSource.volume;
+        if (openRoomMusicSource != null) _openRoomMusicTargetVol = openRoomMusicSource.volume;
+        if (loopSource != null) _defaultLoopVol = loopSource.volume;
     }
 
     void Start()
@@ -203,6 +221,13 @@ public class AudioManager : MonoBehaviour
 
         loopSource.clip = id == SoundID.None ? null : clip;
         loopSource.loop = true;
+        
+        // Adjust volume specifically for phone rings
+        if (id == SoundID.CellphoneRing || id == SoundID.OfficephoneRing)
+            loopSource.volume = phoneRingVolume;
+        else
+            loopSource.volume = _defaultLoopVol;
+
         loopSource.Play();
         _currentLoop = id;
     }
@@ -428,15 +453,20 @@ public class AudioManager : MonoBehaviour
         AudioSource[] allMusic = { mainMusicSource, tenseMusicSource, openRoomMusicSource };
 
         // Start incoming source (at vol 0 if cross-fading)
-        if (incoming != null && !incoming.isPlaying)
+        if (incoming != null)
         {
-            incoming.volume = 0f;
-            incoming.loop   = (state != MusicState.Open); // open room plays once
-            incoming.Play();
+            incoming.loop = (state != MusicState.Open); // open room plays once
+            
+            if (!incoming.isPlaying)
+            {
+                incoming.volume = 0f;
+                incoming.Play();
+            }
         }
 
         float elapsed = 0f;
         float startVol = incoming != null ? incoming.volume : 0f;
+        float targetVol = incoming != null ? GetTargetVolume(incoming) : 1f;
 
         while (elapsed < musicFadeDuration)
         {
@@ -447,7 +477,7 @@ public class AudioManager : MonoBehaviour
             {
                 if (src == null) continue;
                 if (src == incoming)
-                    src.volume = Mathf.Lerp(startVol, 1f, t);
+                    src.volume = Mathf.Lerp(startVol, targetVol, t);
                 else
                     src.volume = Mathf.Lerp(src.volume, 0f, t);
             }
@@ -460,7 +490,7 @@ public class AudioManager : MonoBehaviour
         {
             if (src == null) continue;
             if (src == incoming)
-                src.volume = 1f;
+                src.volume = targetVol;
             else
             {
                 src.volume = 0f;
@@ -474,6 +504,14 @@ public class AudioManager : MonoBehaviour
     // ═══════════════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════════════
+
+    float GetTargetVolume(AudioSource src)
+    {
+        if (src == mainMusicSource) return _mainMusicTargetVol;
+        if (src == tenseMusicSource) return _tenseMusicTargetVol;
+        if (src == openRoomMusicSource) return _openRoomMusicTargetVol;
+        return 1f;
+    }
 
     AudioClip GetClip(SoundID id) => id switch
     {

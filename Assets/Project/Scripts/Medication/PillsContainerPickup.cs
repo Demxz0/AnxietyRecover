@@ -10,14 +10,13 @@ using UnityEngine;
 /// HOW TO SET UP IN THE EDITOR:
 ///   1. Place your pills container prop in the start room.
 ///   2. Add a Collider (Is Trigger = true) to it, or use its mesh collider.
-///   3. Add an InteractableHandIcon component so the hand cursor appears.
-///   4. Attach this script.
-///   5. In the Inspector, assign 'containerVisual' to the mesh/visual child
+///   3. Set the GameObject's Layer to "Interactable" (important for crosshair).
+///   4. Add an InteractableHandIcon component so the hand cursor appears (optional but recommended).
+///   5. Attach this script.
+///   6. In the Inspector, assign 'containerVisual' to the mesh/visual child
 ///      that should disappear on pickup (leave empty to do nothing visually).
-///   6. The paper that explains medication is a separate interactable object
-///      next to the container — use a standard PaperInteraction script on it.
 /// </summary>
-public class PillsContainerPickup : MonoBehaviour
+public class PillsContainerPickup : MonoBehaviour, IInteractable
 {
     [Header("Visual")]
     [Tooltip("The GameObject holding the visible pill container mesh. " +
@@ -29,21 +28,13 @@ public class PillsContainerPickup : MonoBehaviour
              "If false, just disable the visual.")]
     [SerializeField] private bool destroyOnPickup = false;
 
-    [Header("Interaction")]
-    [Tooltip("How close the player must be to interact (used only if no trigger collider is set up).")]
-    [SerializeField] private float interactRadius = 2f;
-
     // ── State ─────────────────────────────────────────────────────────────────
 
     private bool _pickedUp;
 
     // ── Interaction Entry Point ───────────────────────────────────────────────
 
-    /// <summary>
-    /// Call this from the Interactable system when the player presses E.
-    /// Compatible with the existing InteractableHandIcon / interaction pipeline.
-    /// </summary>
-    public void OnInteract()
+    public void Interact()
     {
         if (_pickedUp) return;
         _pickedUp = true;
@@ -67,28 +58,14 @@ public class PillsContainerPickup : MonoBehaviour
         Debug.Log("[PillsContainerPickup] Pills container picked up — medication system unlocked.");
     }
 
-    // ── Fallback: trigger-based interaction ───────────────────────────────────
-    // If you prefer a trigger zone + key press rather than the hand icon system,
-    // you can use this instead. Both approaches work.
-
-    private bool _playerInRange;
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player")) _playerInRange = true;
-    }
-
-    void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player")) _playerInRange = false;
-    }
+    public string GetPromptText() => "Take Medication";
 
 #if UNITY_EDITOR
     [ContextMenu("Test: Trigger Pickup")]
     void TestPickup()
     {
         _pickedUp = false; // allow re-fire in editor
-        OnInteract();
+        Interact();
     }
 #endif
 }

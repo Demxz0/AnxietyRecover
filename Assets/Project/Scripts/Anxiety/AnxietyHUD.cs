@@ -3,32 +3,31 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Drives the Anxiety Meter UI bar.
+/// Drives the Anxiety Meter UI.
 ///
 /// UI hierarchy expected:
 ///   ┌─ AnxietyHUD (this script)
-///   ├─ BarFill          ← Image (Type = Filled, Bottom→Top). Assign to "Anxiety Bar Fill".
-///   └─ LevelIcon        ← Image (Type = Simple, no fill). Assign to "Level Icon".
-///
-/// The fill bar controls fill amount only — its sprite never changes.
-/// The icon image swaps its sprite per anxiety level — it is never clipped.
+///   ├─ BarBackground  ← Image (the empty-bar backdrop, no script needed)
+///   ├─ BarFill        ← Image (Type = Simple). Sprite swaps per anxiety level.
+///   │                    Size/position is fully controlled by the editor — this script
+///   │                    never modifies the RectTransform.
+///   └─ LevelLabel     ← TextMeshProUGUI (optional Arabic level name)
 /// </summary>
 public class AnxietyHUD : MonoBehaviour
 {
     // ─── Inspector ─────────────────────────────────────────────────────────
 
     [Header("Bar References")]
-    [Tooltip("Image (Type = Filled) that shows how full the anxiety bar is. Its sprite is never changed.")]
-    [SerializeField] private Image anxietyBarFill;
+    [Tooltip("Image (Type = Simple, pivot Y = 0, anchored bottom) that acts as the filling bar. " +
+             "Its sprite swaps per level; its height is driven by anxiety value.")]
+    [SerializeField] private Image barFill;
 
-    [Tooltip("A plain Image (Type = Simple) shown next to/above the bar. Its sprite swaps per level.")]
-    [SerializeField] private Image levelIcon;
-
-    [Tooltip("TextMeshPro label showing the current anxiety level in Arabic")]
+    [Tooltip("TextMeshPro label showing the current anxiety level in Arabic (optional).")]
     [SerializeField] private TextMeshProUGUI levelLabel;
 
     [Header("Level Sprites")]
-    [Tooltip("Sprites in order: Calm, MildAnxiety, HighAnxiety, ExtremeAnxiety, Panic")]
+    [Tooltip("Sprites shown in the bar for each level — swap as level changes. " +
+             "Each sprite can have any height; the bar height is driven by anxiety, not fill clipping.")]
     [SerializeField] private Sprite calmSprite;
     [SerializeField] private Sprite mildSprite;
     [SerializeField] private Sprite highSprite;
@@ -36,7 +35,7 @@ public class AnxietyHUD : MonoBehaviour
     [SerializeField] private Sprite panicSprite;
 
     [Header("Pulse Animation (Panic only)")]
-    [Tooltip("Speed of the alpha pulse on the fill bar during Panic state")]
+    [Tooltip("Speed of the alpha pulse on the bar during Panic state.")]
     [SerializeField] private float pulseSpeed    = 3f;
     [SerializeField] private float pulseMinAlpha = 0.5f;
 
@@ -66,64 +65,52 @@ public class AnxietyHUD : MonoBehaviour
             return;
         }
 
-        AnxietyManager.Instance.OnAnxietyChanged += HandleAnxietyChanged;
-        AnxietyManager.Instance.OnLevelChanged   += HandleLevelChanged;
+        AnxietyManager.Instance.OnLevelChanged += HandleLevelChanged;
 
         // Initialize to current state
-        HandleAnxietyChanged(AnxietyManager.Instance.AnxietyValue);
         HandleLevelChanged(AnxietyManager.Instance.CurrentLevel);
     }
 
     void OnDestroy()
     {
         if (AnxietyManager.Instance != null)
-        {
-            AnxietyManager.Instance.OnAnxietyChanged -= HandleAnxietyChanged;
-            AnxietyManager.Instance.OnLevelChanged   -= HandleLevelChanged;
-        }
+            AnxietyManager.Instance.OnLevelChanged -= HandleLevelChanged;
     }
 
     void Update()
     {
-        if (_isPulsing && anxietyBarFill != null)
+        if (_isPulsing && barFill != null)
         {
-            // Pulse the fill bar alpha during Panic
+            // Pulse the bar alpha during Panic
             float alpha = Mathf.Lerp(pulseMinAlpha, 1f, (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f);
-            Color c = anxietyBarFill.color;
-            anxietyBarFill.color = new Color(c.r, c.g, c.b, alpha);
+            Color c = barFill.color;
+            barFill.color = new Color(c.r, c.g, c.b, alpha);
         }
     }
 
     // ─── Event Handlers ────────────────────────────────────────────────────
 
-    /// <summary>Called every time the raw anxiety value changes.</summary>
-    void HandleAnxietyChanged(float value)
-    {
-        if (anxietyBarFill == null) return;
-
-        // Only update the fill amount — never touch the sprite on this image
-        anxietyBarFill.fillAmount = AnxietyManager.Instance.NormalizedAnxiety;
-    }
-
-    /// <summary>Called when the anxiety level category changes.</summary>
+    /// <summary>
+    /// Called when the anxiety level category changes. Swaps the sprite.
+    /// </summary>
     void HandleLevelChanged(AnxietyLevel level)
     {
         _currentLevel = level;
         _isPulsing    = level == AnxietyLevel.Panic;
 
-        // Reset fill bar alpha to full (pulse coroutine takes over for Panic)
-        if (anxietyBarFill != null)
+        // Reset alpha when leaving Panic
+        if (!_isPulsing && barFill != null)
         {
-            Color c = anxietyBarFill.color;
-            anxietyBarFill.color = new Color(c.r, c.g, c.b, 1f);
+            Color c = barFill.color;
+            barFill.color = new Color(c.r, c.g, c.b, 1f);
         }
 
-        // Swap the icon sprite — this image is NOT a fill image, so no clipping
-        if (levelIcon != null)
+        // Swap the bar sprite — no fill clipping, height is handled separately
+        if (barFill != null)
         {
             Sprite s = GetLevelSprite(level);
             if (s != null)
-                levelIcon.sprite = s;
+                barFill.sprite = s;
         }
 
         // Update Arabic label

@@ -86,7 +86,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!114 &5335219974858991861
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -128,13 +128,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 857c3a96e4df32547bdb1fb82d4cd0ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldFloatTextRenderer
-  textMesh: {fileID: 6354425058306140238}
+  textMesh: {fileID: 0}
   worldCanvas: {fileID: 8553672896270119450}
   canvasGroup: {fileID: 927637915380647724}
   spawnDistance: 2
   spawnHeightOffset: 0.2
   floatSpeed: 0.08
   swayAmplitude: 0.015
+  typewriterSpeed: 20
+  narratorColor: {r: 1, g: 0.96, b: 0.85, a: 1}
+  narratorFontSize: 56
   discoveryColor: {r: 1, g: 1, b: 1, a: 1}
   discoveryFontSize: 48
   calmingColor: {r: 0.75, g: 0.88, b: 1, a: 1}
@@ -149,7 +152,7 @@ GameObject:
   m_Component:
   - component: {fileID: 152329388126929485}
   - component: {fileID: 3102416113987684442}
-  - component: {fileID: 6354425058306140238}
+  - component: {fileID: 8009729190411099061}
   m_Layer: 5
   m_Name: FloatText
   m_TagString: Untagged
@@ -184,7 +187,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8391438436929466615}
   m_CullTransparentMesh: 1
---- !u!114 &6354425058306140238
+--- !u!114 &8009729190411099061
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -193,9 +196,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 8391438436929466615}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Script: {fileID: 11500000, guid: b9839c2d141529145a431aef4d757ff3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_EditorClassIdentifier: RTLTMPro::RTLTMPro.RTLTextMeshPro
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -204,11 +207,11 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: The breathing system always end up in the begain of the game is a test
-    test test test
-  m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_text: "\uFE97\uFEA0\uFEAE\uFBFE\uFE94 \uFED3\uFED8\uFEC2 \uFEDF\uFEAE\uFE85\uFBFE\uFE94
+    \uFE8D\uFEDF\uFEA8\uFEC2"
+  m_isRightToLeft: 1
+  m_fontAsset: {fileID: 11400000, guid: 6a0d27fcbc1e7b44eb443b18c05e18e8, type: 2}
+  m_sharedMaterial: {fileID: -3190197484200894814, guid: 6a0d27fcbc1e7b44eb443b18c05e18e8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -232,14 +235,14 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 40
+  m_fontSizeBase: 40
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -271,9 +274,15 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -372.33994, y: -366.90695, z: -373.02655, w: -359.93893}
+  m_margin: {x: -380.56946, y: -389.51105, z: -380.05066, w: -396.23566}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+  preserveNumbers: 0
+  farsi: 1
+  originalText: "\u062A\u062C\u0631\u064A\u0629 \u0641\u0642\u0637 \u0644\u0631\u0624\u064A\u0629
+    \u0627\u0644\u062E\u0637"
+  fixTags: 1
+  forceFix: 0

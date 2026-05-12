@@ -27,7 +27,7 @@ public class LoopRoomEntryTrigger : MonoBehaviour
 
             // Guide hint — breathing is the only way out
             ObjectiveHintManager.Instance?.ShowHint(
-                "The room feels endless... Stand still and breathe to find your way out.", 10f);
+                "أنت تعاني من رهاب الميادين , قف بسكون وتنفس جيدا", 10f);
 
             // Switch inner voices to Loop Room set
             InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.LoopRoom);
