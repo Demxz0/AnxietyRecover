@@ -80,6 +80,11 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
     private bool  _isSolved;
     private bool  _isOpen;
     private float _timeOpened;
+    /// <summary>
+    /// Ensures anxiety only fires ONCE per canvas open session (first wrong answer).
+    /// Resets each time the player opens the canvas fresh.
+    /// </summary>
+    private bool  _hasWrongFiredAnxiety;
 
     void Start()
     {
@@ -171,8 +176,14 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
         {
             PlaySound(wrongSound);
             if (feedbackText != null) feedbackText.text = "Incorrect code.";
-            if (AnxietyManager.Instance != null)
-                AnxietyManager.Instance.AddAnxiety(anxietyOnWrong);
+
+            // Only the FIRST wrong answer per canvas-open session adds anxiety
+            if (!_hasWrongFiredAnxiety)
+            {
+                _hasWrongFiredAnxiety = true;
+                if (AnxietyManager.Instance != null)
+                    AnxietyManager.Instance.AddAnxiety(anxietyOnWrong);
+            }
             Debug.Log("[ComboLock] Wrong combination.");
         }
     }
@@ -182,9 +193,9 @@ public class ComboLockInteraction : MonoBehaviour, IInteractable
         if (lockCanvas != null) lockCanvas.SetActive(true);
         _isOpen = true;
         _timeOpened = Time.time;
+        _hasWrongFiredAnxiety = false; // reset so only first wrong answer fires anxiety
         if (feedbackText != null) feedbackText.text = "";
         UIInputMode.Enter();
-        // Force cursor visible in case UIInputMode was in a stale state
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
     }

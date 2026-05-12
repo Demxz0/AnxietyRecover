@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 8a4034dd2baae114d928481d787c6c31
+AssetOrigin:
+  serializedVersion: 1
+  productId: 348096
+  packageName: Low Poly Bedroom Asset Pack
+  packageVersion: 1.0.0
+  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/large_drawer.fbx
+  uploadId: 862092
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -162,7 +169,7 @@ ModelImporter:
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -224,10 +231,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 348096
-  packageName: Low Poly Bedroom Asset Pack
-  packageVersion: 1.0.0
-  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/large_drawer.fbx
-  uploadId: 862092

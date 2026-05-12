@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 9f3a0a3204e6c9f4f992803d1d1e5efe
+AssetOrigin:
+  serializedVersion: 1
+  productId: 348096
+  packageName: Low Poly Bedroom Asset Pack
+  packageVersion: 1.0.0
+  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/pole_1.fbx
+  uploadId: 862092
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -46,7 +53,7 @@ ModelImporter:
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -108,10 +115,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 348096
-  packageName: Low Poly Bedroom Asset Pack
-  packageVersion: 1.0.0
-  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/pole_1.fbx
-  uploadId: 862092

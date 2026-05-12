@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: bda4610f250d1014e89394fa9bf5c724
+AssetOrigin:
+  serializedVersion: 1
+  productId: 348096
+  packageName: Low Poly Bedroom Asset Pack
+  packageVersion: 1.0.0
+  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/lamp_1.fbx
+  uploadId: 862092
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -108,10 +115,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 348096
-  packageName: Low Poly Bedroom Asset Pack
-  packageVersion: 1.0.0
-  assetPath: Assets/Low Poly Bedroom Asset Pack/Kyle Fuji/Models/lamp_1.fbx
-  uploadId: 862092
