@@ -35,6 +35,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        Debug.Log($"FPS: {1f / Time.deltaTime:F1} | DeltaTime: {Time.deltaTime * 1000:F2}ms");
+    
         if (!CanMove) return;
 
         if (controller.isGrounded && velocity.y < 0)
