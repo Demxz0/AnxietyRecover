@@ -91,8 +91,17 @@ public class IllusionRoomManager : MonoBehaviour
         SetSilhouettes(true);
         StartVoices(voicesNormalVolume);
 
+        // Immediately spike anxiety to 50 % of max, then the continuous routine
+        // raises it slowly from there.
+        if (AnxietyManager.Instance != null)
+        {
+            float spikeTarget = AnxietyManager.Instance.MaxAnxiety * 0.5f;
+            if (AnxietyManager.Instance.AnxietyValue < spikeTarget)
+                AnxietyManager.Instance.SetAnxiety(spikeTarget);
+        }
+
         _anxietyCoroutine = StartCoroutine(ContinuousAnxietyRoutine());
-        Debug.Log("[IllusionRoom] Player entered — illusion active.");
+        Debug.Log("[IllusionRoom] Player entered — illusion active. Anxiety spiked to 50 %.");
     }
 
     // ─── Bathroom API ─────────────────────────────────────────────────────────
@@ -157,6 +166,9 @@ public class IllusionRoomManager : MonoBehaviour
         // Reduce anxiety — this was all in their head
         if (AnxietyManager.Instance != null)
             AnxietyManager.Instance.ReduceAnxiety(anxietyReductionOnLightOn);
+
+        // Silence room-specific inner voices
+        InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.None);
 
         GameStateManager.Instance?.CompleteIllusionRoom();
         Debug.Log("[IllusionRoom] Light ON — illusion ended! Anxiety reduced.");

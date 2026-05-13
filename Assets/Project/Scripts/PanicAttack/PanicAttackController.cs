@@ -10,21 +10,20 @@ using UnityEngine.UI;
 /// Listens to <see cref="AnxietyManager.OnPanicAttackStarted"/> and coordinates:
 ///   • Camera shake         → <see cref="PanicCameraShake"/>
 ///   • Tunnel vision        → URP Vignette (via Volume)
-///   • Heavy breathing      → AudioSource
-///   • Rapid heartbeat      → AudioSource
+///   • Heavy breathing      → AudioManager.PlayLoop(SoundID.BreathingHeavy)
+///   • Rapid heartbeat      → AudioManager.PlayLoop(SoundID.Heartbeat)
 ///   • Visual distortion    → <see cref="PanicDistortionEffect"/>
 ///   • Blackout fade        → UI Image overlay
 ///
 /// SETUP:
 ///   1. Create a GameObject "PanicAttackController" and attach this script.
 ///   2. Assign all references in the Inspector (see tooltips on each field).
-///   3. Ensure the scene has an AnxietyManager singleton.
+///   3. Ensure the scene has an AnxietyManager singleton and an AudioManager singleton.
 ///   4. Ensure the camera has the <see cref="PanicCameraShake"/> component.
 ///   5. Create a Global Volume with a Vignette override (intensity = 0 by default).
 ///   6. Create a Canvas with a full-screen black Image for the blackout overlay.
 ///   7. Create a Canvas with a full-screen RawImage for the distortion overlay.
-///   8. Assign two AudioSources — one for breathing, one for heartbeat.
-///   9. Enable "Post Processing" on the Main Camera (URP Camera Data).
+///   8. Enable "Post Processing" on the Main Camera (URP Camera Data).
 /// </summary>
 public class PanicAttackController : MonoBehaviour
 {
@@ -63,25 +62,8 @@ public class PanicAttackController : MonoBehaviour
     [Tooltip("Max vignette intensity during full panic (0–1).")]
     [SerializeField] private float maxVignetteIntensity = 0.55f;
 
-    [Header("Audio — Breathing")]
-    [Tooltip("AudioSource playing the heavy breathing loop. Assign the clip in the AudioSource itself.")]
-    [SerializeField] private AudioSource breathingSource;
-
-    [Tooltip("Max volume for breathing during panic.")]
-    [SerializeField] [Range(0f, 1f)] private float breathingMaxVolume = 0.8f;
-
-    [Tooltip("Breathing pitch at full panic (slightly faster = more panicked).")]
-    [SerializeField] private float breathingMaxPitch = 1.3f;
-
-    [Header("Audio — Heartbeat")]
-    [Tooltip("AudioSource playing the rapid heartbeat loop. Assign the clip in the AudioSource itself.")]
-    [SerializeField] private AudioSource heartbeatSource;
-
-    [Tooltip("Max volume for heartbeat during panic.")]
-    [SerializeField] [Range(0f, 1f)] private float heartbeatMaxVolume = 0.9f;
-
-    [Tooltip("Heartbeat pitch at full panic (faster = more frantic).")]
-    [SerializeField] private float heartbeatMaxPitch = 1.5f;
+    // Audio is handled entirely by AudioManager.
+    // Clips: SoundID.BreathingHeavy and SoundID.Heartbeat.
 
     [Header("Visual Distortion")]
     [Tooltip("The PanicDistortionEffect component controlling the overlay shader.")]
@@ -156,10 +138,6 @@ public class PanicAttackController : MonoBehaviour
         // Ensure blackout starts invisible
         if (blackoutImage != null)
             SetBlackoutAlpha(0f);
-
-        // Ensure audio starts silent
-        InitAudioSource(breathingSource);
-        InitAudioSource(heartbeatSource);
     }
 
     void OnEnable()
@@ -236,9 +214,8 @@ public class PanicAttackController : MonoBehaviour
         _calmedDown = false;
 
         // Snap all effects to full immediately
-        StartAudioLoops();
+        AudioManager.Instance?.PlayLoop(SoundID.BreathingHeavy);
         ApplyEffects(1f);
-        FadeAudio(1f);
 
         Debug.Log("[PanicAttackController] ── FORCED Blackout Sequence ──");
         yield return StartCoroutine(BlackoutSequence());
@@ -266,7 +243,11 @@ public class PanicAttackController : MonoBehaviour
         Debug.Log("[PanicAttackController] ── Panic Attack Onset ──");
 
         // ── Phase 1: ONSET — ramp effects up ─────────────────────────────
-        StartAudioLoops();
+        // Start both panic audio loops via AudioManager
+        AudioManager.Instance?.PlayLoop(SoundID.BreathingHeavy);
+        // Heartbeat is separate — use sfxSource loop directly via a second source,
+        // or rely on AudioManager's dedicated heartbeat handling
+        AudioManager.Instance?.PlayOneShotOnSfx(SoundID.Heartbeat);
 
         float elapsed = 0f;
         while (elapsed < onsetDuration)
@@ -275,11 +256,10 @@ public class PanicAttackController : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / onsetDuration);
             float smoothT = Mathf.SmoothStep(0f, 1f, t); // ease in-out
             ApplyEffects(smoothT);
-            FadeAudio(smoothT);
+            // Volume rises with intensity — AudioManager handles gradual fade in via its own loop
             yield return null;
         }
         ApplyEffects(1f); // ensure we hit exactly 1.0
-        FadeAudio(1f);
 
         Debug.Log("[PanicAttackController] ── Panic Attack Active (waiting for calm or timeout) ──");
 
@@ -310,7 +290,7 @@ public class PanicAttackController : MonoBehaviour
             // ── Phase 3A: RECOVERY — player calmed down successfully ─────
             Debug.Log("[PanicAttackController] ── Recovery Phase ──");
             yield return StartCoroutine(RampDown(recoveryDuration));
-            StopAudioLoops();
+            AudioManager.Instance?.StopLoop();
 
             _isActive = false;
             AnxietyManager.Instance.NotifyPanicAttackEnded();
@@ -347,14 +327,14 @@ public class PanicAttackController : MonoBehaviour
             SetBlackoutAlpha(smoothT);
 
             // Fade audio out too
-            FadeAudio(1f - smoothT);
+            AudioManager.Instance?.SetLoopVolume(1f - smoothT);
 
             yield return null;
         }
 
         ApplyEffects(0f);
         SetBlackoutAlpha(1f);
-        StopAudioLoops();
+        AudioManager.Instance?.StopLoop();
 
         // ── Hold black (unconscious) ─────────────────────────────────────
         Debug.Log("[PanicAttackController] Character unconscious...");
@@ -465,12 +445,12 @@ public class PanicAttackController : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
             ApplyEffects(t);
-            FadeAudio(t);
+            AudioManager.Instance?.SetLoopVolume(t);
             yield return null;
         }
 
         ApplyEffects(0f);
-        StopAudioLoops();
+        AudioManager.Instance?.StopLoop();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -497,50 +477,6 @@ public class PanicAttackController : MonoBehaviour
             distortionEffect.Intensity = t;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    //  AUDIO HELPERS
-    // ═══════════════════════════════════════════════════════════════════════
-
-    void InitAudioSource(AudioSource src)
-    {
-        if (src == null) return;
-        src.volume = 0f;
-        src.loop   = true;
-        src.playOnAwake = false;
-    }
-
-    void StartAudioLoops()
-    {
-        if (breathingSource != null && breathingSource.clip != null && !breathingSource.isPlaying)
-            breathingSource.Play();
-
-        if (heartbeatSource != null && heartbeatSource.clip != null && !heartbeatSource.isPlaying)
-            heartbeatSource.Play();
-    }
-
-    void StopAudioLoops()
-    {
-        if (breathingSource != null) { breathingSource.Stop(); breathingSource.volume = 0f; }
-        if (heartbeatSource != null) { heartbeatSource.Stop(); heartbeatSource.volume = 0f; }
-    }
-
-    /// <summary>
-    /// Blend audio volume and pitch based on intensity t (0→1).
-    /// </summary>
-    void FadeAudio(float t)
-    {
-        if (breathingSource != null)
-        {
-            breathingSource.volume = Mathf.Lerp(0f, breathingMaxVolume, t);
-            breathingSource.pitch  = Mathf.Lerp(1f, breathingMaxPitch, t);
-        }
-
-        if (heartbeatSource != null)
-        {
-            heartbeatSource.volume = Mathf.Lerp(0f, heartbeatMaxVolume, t);
-            heartbeatSource.pitch  = Mathf.Lerp(1f, heartbeatMaxPitch, t);
-        }
-    }
 
     // ═══════════════════════════════════════════════════════════════════════
     //  BLACKOUT OVERLAY

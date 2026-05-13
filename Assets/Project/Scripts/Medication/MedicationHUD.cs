@@ -61,17 +61,29 @@ public class MedicationHUD : MonoBehaviour
         if (keyHintLabel != null)
             keyHintLabel.text = "[1]";
 
-        // Subscribe to pill taken event
+        // Subscribe to events
         if (MedicationSystem.Instance != null)
+        {
             MedicationSystem.Instance.OnPillTaken += OnPillTaken;
+            MedicationSystem.Instance.OnUnlocked  += OnMedicationUnlocked;
+        }
 
-        UpdateDisplay();
+        // Hide the HUD until the pills container is picked up.
+        // If already unlocked (e.g. scene reloaded), show immediately.
+        bool alreadyUnlocked = MedicationSystem.Instance != null && MedicationSystem.Instance.IsUnlocked;
+        gameObject.SetActive(alreadyUnlocked);
+
+        if (alreadyUnlocked)
+            UpdateDisplay();
     }
 
     void OnDestroy()
     {
         if (MedicationSystem.Instance != null)
+        {
             MedicationSystem.Instance.OnPillTaken -= OnPillTaken;
+            MedicationSystem.Instance.OnUnlocked  -= OnMedicationUnlocked;
+        }
     }
 
     void Update()
@@ -82,6 +94,14 @@ public class MedicationHUD : MonoBehaviour
     void OnPillTaken(int remaining)
     {
         UpdateDisplay();
+    }
+
+    void OnMedicationUnlocked()
+    {
+        // Reveal the HUD the moment the container is picked up
+        gameObject.SetActive(true);
+        UpdateDisplay();
+        Debug.Log("[MedicationHUD] Revealed — pills container picked up.");
     }
 
     void UpdateDisplay()

@@ -12,13 +12,13 @@ TagManager:
   - Water
   - UI
   - Interactable
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Start_Room
+  - Dependency_Room
+  - Hallway_Room
+  - Kitchen_Room
+  - Open_Room
+  - Illusion_Room
+  - Bath_Room
   - 
   - 
   - 

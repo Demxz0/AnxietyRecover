@@ -3,29 +3,40 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Drives the Anxiety Meter UI bar.
-/// Attach to a Canvas GameObject that contains the bar image and label.
+/// Drives the Anxiety Meter UI.
+///
+/// UI hierarchy expected:
+///   ┌─ AnxietyHUD (this script)
+///   ├─ BarBackground  ← Image (the empty-bar backdrop, no script needed)
+///   ├─ BarFill        ← Image (Type = Simple). Sprite swaps per anxiety level.
+///   │                    Size/position is fully controlled by the editor — this script
+///   │                    never modifies the RectTransform.
+///   └─ LevelLabel     ← TextMeshProUGUI (optional Arabic level name)
 /// </summary>
 public class AnxietyHUD : MonoBehaviour
 {
     // ─── Inspector ─────────────────────────────────────────────────────────
 
     [Header("Bar References")]
-    [Tooltip("The Image component used as the fill bar (Image Type = Filled)")]
-    [SerializeField] private Image anxietyBarFill;
+    [Tooltip("Image (Type = Simple, pivot Y = 0, anchored bottom) that acts as the filling bar. " +
+             "Its sprite swaps per level; its height is driven by anxiety value.")]
+    [SerializeField] private Image barFill;
 
-    [Tooltip("TextMeshPro label showing the current anxiety level in Arabic")]
+    [Tooltip("TextMeshPro label showing the current anxiety level in Arabic (optional).")]
     [SerializeField] private TextMeshProUGUI levelLabel;
 
-    [Header("Level Colors")]
-    [SerializeField] private Color calmColor     = new Color(0.25f, 0.60f, 1.00f); // blue
-    [SerializeField] private Color mildColor     = new Color(1.00f, 0.85f, 0.20f); // yellow
-    [SerializeField] private Color highColor     = new Color(1.00f, 0.45f, 0.05f); // orange
-    [SerializeField] private Color panicColor    = new Color(0.85f, 0.10f, 0.10f); // red
+    [Header("Level Sprites")]
+    [Tooltip("Sprites shown in the bar for each level — swap as level changes. " +
+             "Each sprite can have any height; the bar height is driven by anxiety, not fill clipping.")]
+    [SerializeField] private Sprite calmSprite;
+    [SerializeField] private Sprite mildSprite;
+    [SerializeField] private Sprite highSprite;
+    [SerializeField] private Sprite extremeSprite;
+    [SerializeField] private Sprite panicSprite;
 
-    [Header("Pulse Animation")]
-    [Tooltip("The bar pulses when anxiety is in Panic state")]
-    [SerializeField] private float pulseSpeed = 3f;
+    [Header("Pulse Animation (Panic only)")]
+    [Tooltip("Speed of the alpha pulse on the bar during Panic state.")]
+    [SerializeField] private float pulseSpeed    = 3f;
     [SerializeField] private float pulseMinAlpha = 0.5f;
 
     // ─── Private ───────────────────────────────────────────────────────────
@@ -37,10 +48,11 @@ public class AnxietyHUD : MonoBehaviour
 
     private static readonly string[] LevelLabels =
     {
-        "هادئ",        // Calm
-        "قلق خفيف",   // Mild Anxiety
-        "قلق شديد",   // High Anxiety
-        "نوبة هلع"    // Panic
+        "هادئ",          // Calm
+        "قلق خفيف",     // Mild Anxiety
+        "قلق شديد",     // High Anxiety
+        "قلق مفرط",     // Extreme Anxiety
+        "نوبة هلع"      // Panic
     };
 
     // ─── Unity Lifecycle ───────────────────────────────────────────────────
@@ -53,56 +65,52 @@ public class AnxietyHUD : MonoBehaviour
             return;
         }
 
-        // Subscribe to events
-        AnxietyManager.Instance.OnAnxietyChanged += HandleAnxietyChanged;
-        AnxietyManager.Instance.OnLevelChanged   += HandleLevelChanged;
+        AnxietyManager.Instance.OnLevelChanged += HandleLevelChanged;
 
         // Initialize to current state
-        HandleAnxietyChanged(AnxietyManager.Instance.AnxietyValue);
         HandleLevelChanged(AnxietyManager.Instance.CurrentLevel);
     }
 
     void OnDestroy()
     {
         if (AnxietyManager.Instance != null)
-        {
-            AnxietyManager.Instance.OnAnxietyChanged -= HandleAnxietyChanged;
-            AnxietyManager.Instance.OnLevelChanged   -= HandleLevelChanged;
-        }
+            AnxietyManager.Instance.OnLevelChanged -= HandleLevelChanged;
     }
 
     void Update()
     {
-        if (_isPulsing && anxietyBarFill != null)
+        if (_isPulsing && barFill != null)
         {
-            // Smoothly pulse the bar alpha during Panic state
+            // Pulse the bar alpha during Panic
             float alpha = Mathf.Lerp(pulseMinAlpha, 1f, (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f);
-            Color c = anxietyBarFill.color;
-            anxietyBarFill.color = new Color(c.r, c.g, c.b, alpha);
+            Color c = barFill.color;
+            barFill.color = new Color(c.r, c.g, c.b, alpha);
         }
     }
 
     // ─── Event Handlers ────────────────────────────────────────────────────
 
-    void HandleAnxietyChanged(float value)
-    {
-        if (anxietyBarFill == null) return;
-
-        float normalized = AnxietyManager.Instance.NormalizedAnxiety;
-        anxietyBarFill.fillAmount = normalized;
-    }
-
+    /// <summary>
+    /// Called when the anxiety level category changes. Swaps the sprite.
+    /// </summary>
     void HandleLevelChanged(AnxietyLevel level)
     {
         _currentLevel = level;
         _isPulsing    = level == AnxietyLevel.Panic;
 
-        // Update color
-        if (anxietyBarFill != null)
+        // Reset alpha when leaving Panic
+        if (!_isPulsing && barFill != null)
         {
-            Color targetColor = GetLevelColor(level);
-            // Reset alpha to full when switching levels
-            anxietyBarFill.color = new Color(targetColor.r, targetColor.g, targetColor.b, 1f);
+            Color c = barFill.color;
+            barFill.color = new Color(c.r, c.g, c.b, 1f);
+        }
+
+        // Swap the bar sprite — no fill clipping, height is handled separately
+        if (barFill != null)
+        {
+            Sprite s = GetLevelSprite(level);
+            if (s != null)
+                barFill.sprite = s;
         }
 
         // Update Arabic label
@@ -112,15 +120,16 @@ public class AnxietyHUD : MonoBehaviour
 
     // ─── Helpers ───────────────────────────────────────────────────────────
 
-    Color GetLevelColor(AnxietyLevel level)
+    Sprite GetLevelSprite(AnxietyLevel level)
     {
         return level switch
         {
-            AnxietyLevel.Calm        => calmColor,
-            AnxietyLevel.MildAnxiety => mildColor,
-            AnxietyLevel.HighAnxiety => highColor,
-            AnxietyLevel.Panic       => panicColor,
-            _                        => calmColor
+            AnxietyLevel.Calm           => calmSprite,
+            AnxietyLevel.MildAnxiety    => mildSprite,
+            AnxietyLevel.HighAnxiety    => highSprite,
+            AnxietyLevel.ExtremeAnxiety => extremeSprite,
+            AnxietyLevel.Panic          => panicSprite,
+            _                           => calmSprite
         };
     }
 }

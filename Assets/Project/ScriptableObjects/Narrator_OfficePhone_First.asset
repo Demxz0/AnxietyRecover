@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca007d3f3b776184cbdce0b34a93c874, type: 3}
+  m_Name: Narrator_OfficePhone_First
+  m_EditorClassIdentifier: Assembly-CSharp::NarrativeEntry
+  text: 
+  style: 1
+  narratorClip: {fileID: 8300000, guid: fbb8171d50f36fd41a9953d3bd487be4, type: 3}
+  displayDuration: 0
+  fadeInTime: 0.5
+  fadeOutTime: 1
+  typewriterReveal: 0
+  waitForNarrator: 1

@@ -1,20 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// Attach to the phone 3D object. Handles player interaction with the phone.
-/// Reports to DependencyRoomManager.
-///
-/// SETUP:
-///   1. Attach to the phone mesh/GameObject.
-///   2. Assign this phone's AudioSource if you want it to ring on the object itself.
-///   3. DependencyRoomManager handles the actual NPC audio source.
+/// Attach to the cellphone 3D object. Handles player interaction with the cellphone.
+/// Reports to DependencyRoomManager. Audio handled by AudioManager.
 /// </summary>
 public class PhoneInteraction : MonoBehaviour, IInteractable
 {
-    [Header("Audio (optional)")]
-    [Tooltip("Used for the phone ring sound on the phone object itself.")]
-    [SerializeField] private AudioSource localAudioSource;
-
     public void Interact()
     {
         if (DependencyRoomManager.Instance != null)

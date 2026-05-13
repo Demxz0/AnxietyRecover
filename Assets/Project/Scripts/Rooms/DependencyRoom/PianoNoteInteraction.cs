@@ -16,11 +16,12 @@ using UnityEngine.UI;
 /// SETUP:
 ///   1. Attach to the paper-above-piano 3D object.
 ///   2. Create a puzzle Canvas with:
-///        - 4 "slots", each with an up-arrow Button and down-arrow Button + a Text showing the current value.
+///        - 4 "slots", each with an up-arrow Button and down-arrow Button + a UI Image showing the current sprite.
 ///        - A Submit Button.
 ///        - A Result Text showing success/fail feedback.
 ///   3. Assign all references in the Inspector.
 ///   4. Assign the Digit 3 reveal canvas (shows the number when puzzle is solved).
+///   5. Assign 10 sprites (digits 0-9) to 'digitSprites'. Index 0 = sprite for 0, index 1 = sprite for 1, etc.
 /// </summary>
 public class PianoNoteInteraction : MonoBehaviour, IInteractable
 {
@@ -29,8 +30,11 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     [Tooltip("The canvas that shows the note arrangement puzzle.")]
     [SerializeField] private GameObject puzzleCanvas;
 
-    [Tooltip("4 Text labels — one per note slot, showing current value (0-9).")]
-    [SerializeField] private Text[] slotTexts = new Text[4];
+    [Tooltip("10 sprites representing digits 0-9 in order. Index 0 = digit 0, index 9 = digit 9.")]
+    [SerializeField] private Sprite[] digitSprites = new Sprite[10];
+
+    [Tooltip("4 UI Image components — one per note slot. Each displays the sprite for the current value.")]
+    [SerializeField] private Image[] slotImages = new Image[4];
 
     [Tooltip("4 UP buttons — each increments the corresponding slot value.")]
     [SerializeField] private Button[] upButtons = new Button[4];
@@ -122,8 +126,12 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
     void UpdateSlotDisplay()
     {
         for (int i = 0; i < 4; i++)
-            if (slotTexts.Length > i && slotTexts[i] != null)
-                slotTexts[i].text = _currentValues[i].ToString();
+        {
+            if (slotImages.Length <= i || slotImages[i] == null) continue;
+            int v = _currentValues[i];
+            if (digitSprites != null && digitSprites.Length > v && digitSprites[v] != null)
+                slotImages[i].sprite = digitSprites[v];
+        }
     }
 
     void CheckAnswer()

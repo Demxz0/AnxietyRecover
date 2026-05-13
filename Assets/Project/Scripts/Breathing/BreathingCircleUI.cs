@@ -25,11 +25,11 @@ public class BreathingCircleUI : MonoBehaviour
     [Tooltip("The Image component of the circle (for color changes).")]
     [SerializeField] private Image circleImage;
 
-    [Tooltip("Scale of the circle at rest and at exhale end.")]
-    [SerializeField] private float minScale = 0.5f;
+    [Tooltip("How much smaller than the editor size the circle shrinks to at exhale end. (1 = no change)")]
+    [SerializeField] private float minScale = 1f;
 
-    [Tooltip("Scale of the circle at full inhale.")]
-    [SerializeField] private float maxScale = 1.2f;
+    [Tooltip("How much larger than the editor size the circle grows to at full inhale.")]
+    [SerializeField] private float maxScale = 1.4f;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — Labels
@@ -67,6 +67,12 @@ public class BreathingCircleUI : MonoBehaviour
     private float _flashTimer;
     private bool  _isFlashing;
 
+    /// <summary>The localScale read from the editor at Start. Used as the idle/rest size.</summary>
+    private Vector3 _editorScale;
+
+    /// <summary>The color read from the editor at Start. Restored when idle and breathing is inactive.</summary>
+    private Color   _editorColor;
+
     private const string InhaleArabic = "شهيق";
     private const string ExhaleArabic = "زفير";
     private const string IdleArabic   = "تنفّس";  // "Breathe"
@@ -74,6 +80,13 @@ public class BreathingCircleUI : MonoBehaviour
     // ═══════════════════════════════════════════════════════════════════════
     //  UNITY LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════════
+
+    void Start()
+    {
+        // Remember whatever size and color were set in the editor
+        if (circleRect  != null) _editorScale = circleRect.localScale;
+        if (circleImage != null) _editorColor = circleImage.color;
+    }
 
     void Update()
     {
@@ -95,33 +108,35 @@ public class BreathingCircleUI : MonoBehaviour
         if (circleRect == null) return;
 
         var state = BreathingSystem.Instance.CurrentState;
-        float scale = minScale; // default: resting
+
+        // Calculate the rest size as a scaled version of the editor size
+        Vector3 restScale   = _editorScale * minScale;
+        Vector3 expandScale = _editorScale * maxScale;
+
+        Vector3 targetScale = restScale; // default: idle / resting
 
         switch (state)
         {
             case BreathingSystem.State.Inhaling:
-                // Expand proportionally to how long the player has held F
                 float inhaleProgress = BreathingSystem.Instance.PhaseProgress;
-                scale = Mathf.Lerp(minScale, maxScale, Mathf.SmoothStep(0f, 1f, inhaleProgress));
+                targetScale = Vector3.Lerp(restScale, expandScale, Mathf.SmoothStep(0f, 1f, inhaleProgress));
                 break;
 
             case BreathingSystem.State.WaitingForExhale:
-                // Stay at full size — inhale just completed
-                scale = maxScale;
+                targetScale = expandScale;
                 break;
 
             case BreathingSystem.State.Exhaling:
-                // Shrink proportionally to how long the player has held G
                 float exhaleProgress = BreathingSystem.Instance.PhaseProgress;
-                scale = Mathf.Lerp(maxScale, minScale, Mathf.SmoothStep(0f, 1f, exhaleProgress));
+                targetScale = Vector3.Lerp(expandScale, restScale, Mathf.SmoothStep(0f, 1f, exhaleProgress));
                 break;
 
-            default: // Idle
-                scale = minScale;
+            default: // Idle — stay exactly at the editor-defined size
+                targetScale = _editorScale;
                 break;
         }
 
-        circleRect.localScale = Vector3.one * scale;
+        circleRect.localScale = targetScale;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -133,12 +148,14 @@ public class BreathingCircleUI : MonoBehaviour
         if (circleImage == null || _isFlashing) return;
 
         var state = BreathingSystem.Instance.CurrentState;
+
+        // When idle, restore the original editor color — don't override it
         Color target = state switch
         {
-            BreathingSystem.State.Inhaling        => inhaleColor,
+            BreathingSystem.State.Inhaling         => inhaleColor,
             BreathingSystem.State.WaitingForExhale => waitColor,
-            BreathingSystem.State.Exhaling         => exhaleColor,
-            _                                      => idleColor
+            BreathingSystem.State.Exhaling          => exhaleColor,
+            _                                       => _editorColor   // idle → keep editor color
         };
 
         circleImage.color = Color.Lerp(circleImage.color, target, Time.deltaTime * 8f);

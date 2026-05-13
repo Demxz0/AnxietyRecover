@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
 /// Handles player raycasting for interaction.
@@ -23,10 +22,6 @@ public class PlayerInteraction : MonoBehaviour
 
     [Header("Camera Reference")]
     [SerializeField] private Camera _cam;
-
-    [Header("UI")]
-    [SerializeField] private GameObject interactPromptUI;
-    [SerializeField] private TextMeshProUGUI promptText;
 
     [Header("Crosshair")]
     [Tooltip("The crosshair dot Image in the center of the screen. " +
@@ -63,7 +58,6 @@ public class PlayerInteraction : MonoBehaviour
             if (_currentTarget != null)
             {
                 _currentTarget = null;
-                HidePrompt();
                 SetCrosshairColor(false);
             }
             return;
@@ -84,10 +78,8 @@ public class PlayerInteraction : MonoBehaviour
             if (interactable != null)
             {
                 if (_currentTarget != interactable)
-                {
                     _currentTarget = interactable;
-                    ShowPrompt(_currentTarget.GetPromptText());
-                }
+
                 SetCrosshairColor(true);
                 return;
             }
@@ -100,7 +92,6 @@ public class PlayerInteraction : MonoBehaviour
         if (_currentTarget != null)
         {
             _currentTarget = null;
-            HidePrompt();
         }
 
         SetCrosshairColor(false);
@@ -115,20 +106,6 @@ public class PlayerInteraction : MonoBehaviour
         // which clears _currentTarget, so ShowPrompt below would crash.
         IInteractable target = _currentTarget;
         target.Interact();
-
-        if (!UIInputMode.IsInUI && _currentTarget != null)
-            ShowPrompt(_currentTarget.GetPromptText());
-    }
-
-    void ShowPrompt(string text)
-    {
-        if (interactPromptUI) interactPromptUI.SetActive(true);
-        if (promptText) promptText.text = $"[E] {text}";
-    }
-
-    void HidePrompt()
-    {
-        if (interactPromptUI) interactPromptUI.SetActive(false);
     }
 
     void SetCrosshairColor(bool isInteractable)

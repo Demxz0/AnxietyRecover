@@ -63,12 +63,8 @@ public class BreathingSystem : MonoBehaviour
     //  INSPECTOR — Audio
     // ═══════════════════════════════════════════════════════════════════════
 
-    [Header("Audio (assign clips later — no errors if empty)")]
-    [Tooltip("Played while the player inhales.")]
-    [SerializeField] private AudioSource inhaleAudio;
-
-    [Tooltip("Played while the player exhales.")]
-    [SerializeField] private AudioSource exhaleAudio;
+    // Audio is handled entirely by AudioManager.
+    // Inhale → SoundID.Inhale, Exhale → SoundID.Exhale
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — References
@@ -311,8 +307,7 @@ public class BreathingSystem : MonoBehaviour
         _state = State.Idle;
         ResetPhaseTracking();
 
-        StopIfPlaying(inhaleAudio);
-        StopIfPlaying(exhaleAudio);
+        AudioManager.Instance?.StopLoop();
 
         if (circleUI != null) circleUI.OnCycleFailed();
     }
@@ -324,8 +319,7 @@ public class BreathingSystem : MonoBehaviour
         _state = State.Idle;
         ResetPhaseTracking();
 
-        StopIfPlaying(inhaleAudio);
-        StopIfPlaying(exhaleAudio);
+        AudioManager.Instance?.StopLoop();
 
         Debug.Log($"[BreathingSystem] ★ Cycle complete! ({_consecutiveSuccessfulCycles} consecutive)");
 
@@ -374,31 +368,22 @@ public class BreathingSystem : MonoBehaviour
     {
         if (_state == State.Inhaling)
         {
-            PlayLoopIfNotPlaying(inhaleAudio);
-            StopIfPlaying(exhaleAudio);
+            AudioManager.Instance?.PlayLoop(SoundID.Inhale);
         }
         else if (_state == State.Exhaling)
         {
-            PlayLoopIfNotPlaying(exhaleAudio);
-            StopIfPlaying(inhaleAudio);
+            AudioManager.Instance?.PlayLoop(SoundID.Exhale);
         }
         else
         {
-            StopIfPlaying(inhaleAudio);
-            StopIfPlaying(exhaleAudio);
+            // Stop only if currently playing inhale or exhale
+            if (AudioManager.Instance != null)
+            {
+                if (AudioManager.Instance.CurrentLoop == SoundID.Inhale ||
+                    AudioManager.Instance.CurrentLoop == SoundID.Exhale)
+                    AudioManager.Instance.StopLoop();
+            }
         }
-    }
-
-    void PlayLoopIfNotPlaying(AudioSource src)
-    {
-        if (src == null || src.clip == null) return;
-        if (!src.isPlaying) { src.loop = true; src.Play(); }
-    }
-
-    void StopIfPlaying(AudioSource src)
-    {
-        if (src == null) return;
-        if (src.isPlaying) src.Stop();
     }
 
     // ═══════════════════════════════════════════════════════════════════════

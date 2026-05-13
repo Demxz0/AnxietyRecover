@@ -13,6 +13,7 @@ using UnityEngine;
 ///   3. Assign both to this script.
 ///   4. Assign the bedroom RoomLightController.
 ///   5. Attach this script to the switch's parent (or any of the meshes with a collider).
+///   6. Assign 'narratorSecondEntry' — plays after the light turns on (Narrator's 2nd speech).
 /// </summary>
 public class LightSwitchInteraction : MonoBehaviour, IInteractable
 {
@@ -29,6 +30,14 @@ public class LightSwitchInteraction : MonoBehaviour, IInteractable
 
     [Tooltip("Intensity of the light reveal flash.")]
     [SerializeField] private float revealIntensity = 1.6f;
+
+    [Header("Narrator — Second Speech")]
+    [Tooltip("NarrativeEntry that plays when the player turns on the light (Narrator's 2nd speech).")]
+    [SerializeField] private NarrativeEntry narratorSecondEntry;
+
+    [Tooltip("World position where the narrator text will appear. " +
+             "Create an empty child GO, place it where you want the text, and assign it here.")]
+    [SerializeField] private Transform textAnchor;
 
     [Header("Audio (optional)")]
     [SerializeField] private AudioSource audioSource;
@@ -99,6 +108,12 @@ public class LightSwitchInteraction : MonoBehaviour, IInteractable
 
         // Tell IllusionRoomManager the illusion is over
         IllusionRoomManager.Instance?.OnLightTurnedOn();
+
+        // Narrator's second speech — plays at the assigned anchor position
+        if (narratorSecondEntry != null && NarrativeManager.Instance != null)
+            NarrativeManager.Instance.Show(narratorSecondEntry, textAnchor);
+        else if (narratorSecondEntry == null)
+            Debug.LogWarning("[LightSwitch] narratorSecondEntry not assigned — Narrator 2nd speech won't play.");
 
         Debug.Log("[LightSwitch] LIGHT ON — illusion dispelled!");
     }

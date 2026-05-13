@@ -2,6 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Dependency Room Entry Trigger — starts the phone ringing when the player walks in.
+/// Also switches the InnerVoiceManager to the Dependency Room voice set.
 ///
 /// SETUP:
 ///   1. Create an empty GameObject at the office doorway.
@@ -25,5 +26,8 @@ public class DependencyRoomEntryTrigger : MonoBehaviour
             DependencyRoomManager.Instance.StartPhoneRinging();
         else
             Debug.LogWarning("[DependencyEntryTrigger] DependencyRoomManager not found!");
+
+        // Switch inner voices to Dependency Room set
+        InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.DependencyRoom);
     }
 }
