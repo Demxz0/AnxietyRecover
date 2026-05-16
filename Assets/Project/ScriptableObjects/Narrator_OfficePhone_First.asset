@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Narrator_OfficePhone_First
   m_EditorClassIdentifier: Assembly-CSharp::NarrativeEntry
   text: 
-  style: 1
-  narratorClip: {fileID: 8300000, guid: fbb8171d50f36fd41a9953d3bd487be4, type: 3}
+  style: 0
+  narratorClip: {fileID: 8300000, guid: e83a1364ca35e794b8b234cd06501ad1, type: 3}
   displayDuration: 0
   fadeInTime: 0.5
   fadeOutTime: 1

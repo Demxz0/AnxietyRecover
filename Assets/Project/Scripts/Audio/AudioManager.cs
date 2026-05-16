@@ -152,7 +152,12 @@ public class AudioManager : MonoBehaviour
     private float _tenseMusicTargetVol = 1f;
     private float _openRoomMusicTargetVol = 1f;
 
-    private float _defaultLoopVol = 1f;
+    private float _defaultLoopVol       = 1f;
+    private float _defaultHeartbeatVol  = 1f;
+
+    // Master volume scale (used by blackout fade — multiplied against target vols)
+    private float _masterScale = 1f;
+    private Coroutine _allAudioFadeRoutine;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  UNITY LIFECYCLE
@@ -165,10 +170,11 @@ public class AudioManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         // Store original volumes set in Inspector to use as max limits
-        if (mainMusicSource != null) _mainMusicTargetVol = mainMusicSource.volume;
-        if (tenseMusicSource != null) _tenseMusicTargetVol = tenseMusicSource.volume;
+        if (mainMusicSource     != null) _mainMusicTargetVol     = mainMusicSource.volume;
+        if (tenseMusicSource    != null) _tenseMusicTargetVol    = tenseMusicSource.volume;
         if (openRoomMusicSource != null) _openRoomMusicTargetVol = openRoomMusicSource.volume;
-        if (loopSource != null) _defaultLoopVol = loopSource.volume;
+        if (loopSource          != null) _defaultLoopVol         = loopSource.volume;
+        if (heartbeatLoopSource != null) _defaultHeartbeatVol    = heartbeatLoopSource.volume;
     }
 
     void Start()
@@ -244,21 +250,136 @@ public class AudioManager : MonoBehaviour
     /// <summary>Stops any currently looping sound unconditionally.</summary>
     public void StopLoop()
     {
-        loopSource.Stop();
-        loopSource.clip = null;
+        if (loopSource != null) { loopSource.Stop(); loopSource.clip = null; }
         _currentLoop = SoundID.None;
 
-        // Also stop heartbeat loop
-        if (heartbeatLoopSource != null) heartbeatLoopSource.Stop();
+        // Also stop heartbeat loop and restore its volume
+        if (heartbeatLoopSource != null)
+        {
+            heartbeatLoopSource.Stop();
+            heartbeatLoopSource.volume = _defaultHeartbeatVol;
+        }
     }
 
     /// <summary>
-    /// Directly set the volume of the loop source (used for fade-out during blackout).
+    /// Directly set the volume of BOTH loop sources (breathing + heartbeat).
+    /// Used for gradual fade during blackout.
     /// </summary>
     public void SetLoopVolume(float volume)
     {
-        if (loopSource != null) loopSource.volume = volume;
-        if (heartbeatLoopSource != null) heartbeatLoopSource.volume = volume;
+        if (loopSource          != null) loopSource.volume          = volume * _masterScale;
+        if (heartbeatLoopSource != null) heartbeatLoopSource.volume = volume * _masterScale;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  PUBLIC API — Panic Audio (Breathing + Heartbeat together)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Starts BOTH heavy breathing (loopSource) and heartbeat (heartbeatLoopSource) for panic.
+    /// Stops any previous loop on the loop source first so they always play cleanly.
+    /// </summary>
+    public void PlayPanicAudio()
+    {
+        // --- Breathing ---
+        AudioClip breathClip = GetClip(SoundID.BreathingHeavy);
+        if (breathClip != null && loopSource != null)
+        {
+            loopSource.Stop();
+            loopSource.clip   = breathClip;
+            loopSource.loop   = true;
+            loopSource.volume = _defaultLoopVol * _masterScale;
+            loopSource.Play();
+            _currentLoop = SoundID.BreathingHeavy;
+        }
+        else LogMissing(SoundID.BreathingHeavy);
+
+        // --- Heartbeat ---
+        AudioClip heartClip = GetClip(SoundID.Heartbeat);
+        if (heartClip != null && heartbeatLoopSource != null)
+        {
+            heartbeatLoopSource.Stop();
+            heartbeatLoopSource.clip   = heartClip;
+            heartbeatLoopSource.loop   = true;
+            heartbeatLoopSource.volume = _defaultHeartbeatVol * _masterScale;
+            heartbeatLoopSource.Play();
+        }
+        else LogMissing(SoundID.Heartbeat);
+
+        Debug.Log("[AudioManager] Panic audio started (breathing + heartbeat).");
+    }
+
+    /// <summary>
+    /// Stops both breathing and heartbeat loops cleanly.
+    /// </summary>
+    public void StopPanicAudio()
+    {
+        StopLoop(); // handles both loopSource and heartbeatLoopSource
+        Debug.Log("[AudioManager] Panic audio stopped.");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  PUBLIC API — Global Audio Fade (Blackout)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Fades ALL audio sources (music, loops, voices, sfx) to targetVolume over duration.
+    /// Use target=0 for blackout fade-out, target=1 for wake-up fade-in.
+    /// </summary>
+    public void FadeAllAudio(float targetVolume, float duration)
+    {
+        if (_allAudioFadeRoutine != null) StopCoroutine(_allAudioFadeRoutine);
+        _allAudioFadeRoutine = StartCoroutine(FadeAllAudioRoutine(targetVolume, duration));
+    }
+
+    /// <summary>
+    /// Instantly set all audio to a volume scale (0=silent, 1=full).
+    /// </summary>
+    public void SetAllVolumesImmediate(float scale)
+    {
+        _masterScale = Mathf.Clamp01(scale);
+        ApplyMasterScale();
+    }
+
+    IEnumerator FadeAllAudioRoutine(float targetScale, float duration)
+    {
+        float startScale = _masterScale;
+        float elapsed    = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _masterScale = Mathf.Lerp(startScale, targetScale, Mathf.Clamp01(elapsed / duration));
+            ApplyMasterScale();
+            yield return null;
+        }
+
+        _masterScale = targetScale;
+        ApplyMasterScale();
+        _allAudioFadeRoutine = null;
+    }
+
+    void ApplyMasterScale()
+    {
+        // Music
+        if (mainMusicSource     != null && mainMusicSource.isPlaying)
+            mainMusicSource.volume     = _mainMusicTargetVol     * _masterScale;
+        if (tenseMusicSource    != null && tenseMusicSource.isPlaying)
+            tenseMusicSource.volume    = _tenseMusicTargetVol    * _masterScale;
+        if (openRoomMusicSource != null && openRoomMusicSource.isPlaying)
+            openRoomMusicSource.volume = _openRoomMusicTargetVol * _masterScale;
+
+        // Loops
+        if (loopSource          != null) loopSource.volume          = _defaultLoopVol      * _masterScale;
+        if (heartbeatLoopSource != null) heartbeatLoopSource.volume = _defaultHeartbeatVol * _masterScale;
+
+        // Voices
+        if (npcVoiceSource      != null) npcVoiceSource.volume      = 1f * _masterScale;
+        if (narratorVoiceSource != null) narratorVoiceSource.volume  = 1f * _masterScale;
+        if (negativeVoiceSource != null) negativeVoiceSource.volume  = 1f * _masterScale;
+
+        // SFX
+        if (sfxSource           != null) sfxSource.volume           = 1f * _masterScale;
     }
 
     /// <summary>
