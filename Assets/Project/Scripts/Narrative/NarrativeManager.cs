@@ -140,6 +140,11 @@ public class NarrativeManager : MonoBehaviour
             if (r.InUse) r.ForceHide();
         _queue.Clear();
         _isShowing = false;
+        
+        // Unblock panic attacks if they were blocked
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.UnblockPanicAttack();
+        
         StopAllCoroutines();
         OnNarrativeFinished?.Invoke();
     }
@@ -150,11 +155,17 @@ public class NarrativeManager : MonoBehaviour
     {
         _isShowing = true;
 
+        // Block panic attacks while narrator is speaking
+        if (entry.narratorClip != null && AnxietyManager.Instance != null)
+            AnxietyManager.Instance.BlockPanicAttack();
+
         WorldFloatTextRenderer renderer = GetAvailableRenderer();
         if (renderer == null)
         {
             Debug.LogWarning("[NarrativeManager] Pool exhausted — skipping this entry.");
             _isShowing = false;
+            if (entry.narratorClip != null && AnxietyManager.Instance != null)
+                AnxietyManager.Instance.UnblockPanicAttack();
             ProcessQueue();
             yield break;
         }
@@ -162,18 +173,42 @@ public class NarrativeManager : MonoBehaviour
         // Play narrator voice if assigned
         float narratorDuration = 0f;
         if (entry.narratorClip != null && AudioManager.Instance != null)
+        {
             narratorDuration = AudioManager.Instance.PlayNarratorClip(entry.narratorClip);
+            Debug.Log($"[NarrativeManager] Narrator clip duration: {narratorDuration}s for entry: {entry.name}");
+        }
 
         // anchor != null → use that exact world position and rotation; null → spawn in front of player
         Vector3? overridePos = anchor != null ? anchor.position : (Vector3?)null;
         Quaternion? overrideRot = anchor != null ? anchor.rotation : (Quaternion?)null;
         renderer.Show(entry, playerTransform, mainCamera, overridePos, overrideRot);
 
-        float waitTime = entry.waitForNarrator && narratorDuration > 0f
-            ? narratorDuration + entry.fadeOutTime
-            : entry.fadeInTime + (entry.displayDuration > 0f ? entry.displayDuration : Mathf.Max(narratorDuration, 3f)) + entry.fadeOutTime;
+        // Calculate wait time based on whether we're waiting for narrator or using display duration
+        float waitTime;
+        if (entry.narratorClip != null && narratorDuration > 0f)
+        {
+            // If narrator audio is present, always wait for its full duration + fade out
+            waitTime = narratorDuration + entry.fadeOutTime;
+            Debug.Log($"[NarrativeManager] Waiting for narrator: {narratorDuration}s + fade {entry.fadeOutTime}s = {waitTime}s total");
+        }
+        else if (entry.displayDuration > 0f)
+        {
+            // Use explicit display duration if set
+            waitTime = entry.fadeInTime + entry.displayDuration + entry.fadeOutTime;
+            Debug.Log($"[NarrativeManager] Using display duration: {waitTime}s");
+        }
+        else
+        {
+            // Default to 3 seconds
+            waitTime = entry.fadeInTime + 3f + entry.fadeOutTime;
+            Debug.Log($"[NarrativeManager] Using default duration: {waitTime}s");
+        }
 
         yield return new WaitForSeconds(waitTime);
+
+        // Unblock panic attacks after narrator finishes
+        if (entry.narratorClip != null && AnxietyManager.Instance != null)
+            AnxietyManager.Instance.UnblockPanicAttack();
 
         _isShowing = false;
         ProcessQueue();

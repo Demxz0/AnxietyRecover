@@ -158,16 +158,18 @@ public class BathroomManager : MonoBehaviour
 
     IEnumerator BathroomRoutine()
     {
-        // Show inner-voice floating text immediately when player hides in the bathroom
-        if (bathroomWaitingEntry != null && NarrativeManager.Instance != null)
-        {
-            NarrativeManager.Instance.Show(bathroomWaitingEntry, textAnchor);
-        }
-
         // Brief delay so the player is fully inside before door closes
         yield return new WaitForSeconds(doorCloseDelay);
         if (bathroomDoor != null) { bathroomDoor.ForceClose(); bathroomDoor.Lock(); }
         Debug.Log("[DEBUG][Bathroom] Door closed and locked.");
+
+        // Show inner-voice floating text after door closes (as player reflects on their choice)
+        if (bathroomWaitingEntry != null && NarrativeManager.Instance != null)
+        {
+            yield return new WaitForSeconds(waitingTextDelay);
+            NarrativeManager.Instance.Show(bathroomWaitingEntry, textAnchor);
+            Debug.Log("[DEBUG][Bathroom] Bathroom waiting text displayed.");
+        }
 
         // Safe window (remaining time after door delay)
         float remaining = Mathf.Max(0f, safeWindowDuration - doorCloseDelay);

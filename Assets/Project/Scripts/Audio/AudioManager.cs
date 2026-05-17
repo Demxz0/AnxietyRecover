@@ -474,6 +474,15 @@ public class AudioManager : MonoBehaviour
         if (narratorVoiceSource != null) narratorVoiceSource.volume  = 1f * _masterScale;
         if (negativeVoiceSource != null) negativeVoiceSource.volume  = 1f * _masterScale;
 
+        // Environmental sounds (IllusionRoom people judging voices)
+        if (IllusionRoomManager.Instance != null)
+        {
+            // Access and fade the voices source indirectly via IllusionRoomManager
+            AudioSource voicesSource = IllusionRoomManager.Instance.GetVoicesSource();
+            if (voicesSource != null)
+                voicesSource.volume = 1f * _masterScale;
+        }
+
         // SFX
         if (sfxSource           != null) sfxSource.volume           = 1f * _masterScale;
     }

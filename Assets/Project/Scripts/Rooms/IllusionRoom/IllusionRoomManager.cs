@@ -51,6 +51,9 @@ public class IllusionRoomManager : MonoBehaviour
     [Tooltip("Anxiety added per second while in the dark bedroom (voices active).")]
     [SerializeField] private float anxietyPerSecond = 4f;
 
+    [Tooltip("Anxiety added per second after panic attack in bathroom (much slower recovery).")]
+    [SerializeField] private float anxietyPerSecondPostPanic = 0.2f;
+
     [Tooltip("Anxiety reduced when the light turns on successfully.")]
     [SerializeField] private float anxietyReductionOnLightOn = 40f;
 
@@ -64,6 +67,7 @@ public class IllusionRoomManager : MonoBehaviour
 
     private bool      _badPathTriggered;
     private bool      _anxiausPaused;
+    private bool      _postPanicMode;
     private Coroutine _anxietyCoroutine;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -177,8 +181,8 @@ public class IllusionRoomManager : MonoBehaviour
         if (postPanic)
         {
             // Slow down the anxiety rate permanently after a panic attack in the bathroom
-            anxietyPerSecond = 0.5f;
-            Debug.Log("[IllusionRoom] Post-panic bedroom rate set slower: " + anxietyPerSecond);
+            _postPanicMode = true;
+            Debug.Log("[IllusionRoom] Post-panic mode: anxiety increase rate set to " + anxietyPerSecondPostPanic + "/s (was " + anxietyPerSecond + "/s).");
         }
         else
         {
@@ -223,13 +227,21 @@ public class IllusionRoomManager : MonoBehaviour
     }
 
     // ─── Private Helpers ─────────────────────────────────────────────────────
+    
+    /// <summary>Public accessor for the voices AudioSource (used by AudioManager for master fade).</summary>
+    public AudioSource GetVoicesSource() => voicesSource;
+    
     IEnumerator ContinuousAnxietyRoutine()
     {
         while (IsIllusionActive)
         {
             // Respect the bathroom safe-window pause
             if (!_anxiausPaused && AnxietyManager.Instance != null)
-                AnxietyManager.Instance.AddAnxiety(anxietyPerSecond * Time.deltaTime);
+            {
+                // Use post-panic rate if in post-panic mode, otherwise use normal rate
+                float currentRate = _postPanicMode ? anxietyPerSecondPostPanic : anxietyPerSecond;
+                AnxietyManager.Instance.AddAnxiety(currentRate * Time.deltaTime);
+            }
             yield return null;
         }
     }

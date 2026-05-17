@@ -158,6 +158,39 @@ public class LoopRoomManager : MonoBehaviour
 
         // Make sure effects are zeroed out at start
         ApplyEffects(0f);
+
+        // Listen for game ending so we can unlock the door when narrator finishes
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnAllRoomsCompleted += HandleAllRoomsCompleted;
+    }
+
+    void OnDestroy()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnAllRoomsCompleted -= HandleAllRoomsCompleted;
+    }
+
+    void HandleAllRoomsCompleted()
+    {
+        // Wait for the narrator's final speech to finish, then unlock the door
+        StartCoroutine(UnlockDoorAfterNarratorFinishes());
+    }
+
+    System.Collections.IEnumerator UnlockDoorAfterNarratorFinishes()
+    {
+        // Wait for the narrator to finish speaking
+        if (NarrativeManager.Instance != null)
+        {
+            while (NarrativeManager.Instance.IsShowing)
+                yield return null;
+        }
+
+        // Unlock the kitchen door so player can exit
+        if (kitchenDoor != null)
+        {
+            kitchenDoor.Unlock();
+            Debug.Log("[LoopRoom] Kitchen door unlocked — narrator finished final speech.");
+        }
     }
 
     void Update()
@@ -314,32 +347,14 @@ public class LoopRoomManager : MonoBehaviour
         if (ambientSource != null)
             ambientSource.Stop();
 
-        // Unlock the kitchen door so the player can leave ONLY after the narrator finishes
-        StartCoroutine(UnlockDoorWhenNarratorFinishes());
-
+        // Mark loop room complete — door will remain locked until all rooms are done
+        // and the narrator finishes the final speech
         GameStateManager.Instance?.CompleteLoopRoom();
 
         if (AnxietyManager.Instance != null)
             AnxietyManager.Instance.StartGradualReduction(0f, 2f);
 
-        Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE!");
-    }
-
-    private System.Collections.IEnumerator UnlockDoorWhenNarratorFinishes()
-    {
-        if (NarrativeManager.Instance != null)
-        {
-            while (NarrativeManager.Instance.IsShowing)
-            {
-                yield return null;
-            }
-        }
-
-        if (kitchenDoor != null)
-        {
-            kitchenDoor.Unlock();
-            Debug.Log("[ExpandingRoom] Kitchen door unlocked after narrator finished speaking.");
-        }
+        Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE! Door stays locked until narrator finishes.");
     }
 
 #if UNITY_EDITOR
