@@ -74,10 +74,6 @@ public class PanicAttackController : MonoBehaviour
     //  INSPECTOR — Recovery
     // ═══════════════════════════════════════════════════════════════════════
 
-    [Header("Post-Blackout")]
-    [Tooltip("Anxiety value to set after the player 'wakes up' from a blackout.")]
-    [SerializeField] private float postBlackoutAnxiety = 30f;
-
     [Header("Wake-Up Sequence")]
     [Tooltip("The camera Transform used for the wake-up tilt. Auto-finds Camera.main if not set.")]
     [SerializeField] private Transform wakeUpCamera;
@@ -292,7 +288,7 @@ public class PanicAttackController : MonoBehaviour
 
         // ── While screen is BLACK: reset anxiety + snap camera to ground position ──
         if (AnxietyManager.Instance != null)
-            AnxietyManager.Instance.SetAnxiety(postBlackoutAnxiety);
+            AnxietyManager.Instance.SetAnxiety(AnxietyManager.Instance.MildThreshold);
 
         // Snap camera while screen is fully black (player won't see the snap)
         if (cam != null)

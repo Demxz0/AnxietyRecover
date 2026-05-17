@@ -62,6 +62,7 @@ public class LockedDoorInteraction : MonoBehaviour, IInteractable
             {
                 Debug.Log("[LockedDoor] Door is locked. Player needs the key.");
                 PlaySound(lockedSound);
+                ObjectiveHintManager.Instance?.ShowHint("مغلق", 3f);
 
                 // Only add anxiety on the VERY FIRST click — subsequent clicks do nothing
                 if (_lockedClickCount == 0 && AnxietyManager.Instance != null)

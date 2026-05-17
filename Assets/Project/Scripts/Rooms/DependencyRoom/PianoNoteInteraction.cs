@@ -151,6 +151,9 @@ public class PianoNoteInteraction : MonoBehaviour, IInteractable
             GameStateManager.Instance?.SetDigit3Found();
             DependencyRoomManager.Instance?.OnPianoSolved();
 
+            if (AnxietyManager.Instance != null)
+                AnxietyManager.Instance.ReduceOneLevel();
+
             // Show Digit 3 reveal canvas
             SetCanvasActive(digit3Canvas, true);
 

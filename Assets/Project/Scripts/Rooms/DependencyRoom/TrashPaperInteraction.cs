@@ -31,6 +31,9 @@ public class TrashPaperInteraction : MonoBehaviour
         if (DependencyRoomManager.Instance != null)
             DependencyRoomManager.Instance.OnTrashPaperRead();
 
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.ReduceOneLevel();
+
         Debug.Log("[TrashPaper] Password 'YouGotThis123' revealed.");
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Audio;
 
 /// <summary>
 /// Centralized audio system for the entire game.
@@ -44,32 +45,46 @@ public class AudioManager : MonoBehaviour
 
     [Header("Door Sounds")]
     [SerializeField] private AudioClip doorOpenClip;
+    [SerializeField] [Range(0f, 1f)] private float doorOpenVolume = 1f;
     [SerializeField] private AudioClip doorCloseClip;
+    [SerializeField] [Range(0f, 1f)] private float doorCloseVolume = 1f;
 
     [Header("UI / Puzzle Sounds")]
     [SerializeField] private AudioClip buttonClickClip;
+    [SerializeField] [Range(0f, 1f)] private float buttonClickVolume = 1f;
     [SerializeField] private AudioClip rightAnswerClip;
+    [SerializeField] [Range(0f, 1f)] private float rightAnswerVolume = 1f;
     [SerializeField] private AudioClip wrongAnswerClip;
+    [SerializeField] [Range(0f, 1f)] private float wrongAnswerVolume = 1f;
 
     [Header("Phone Sounds")]
     [SerializeField] private AudioClip cellphoneRingClip;
     [SerializeField] private AudioClip officephoneRingClip;
     [SerializeField] private AudioClip callCutOffClip;
+    [SerializeField] [Range(0f, 1f)] private float callCutOffVolume = 1f;
     [SerializeField] private AudioClip callbackUnavailableClip;
+    [SerializeField] [Range(0f, 1f)] private float callbackUnavailableVolume = 1f;
 
     [Tooltip("Specific volume multiplier for when the phone is ringing. 1.0 is full volume, 0.3 is quiet.")]
     [SerializeField] [Range(0f, 1f)] private float phoneRingVolume = 0.4f;
 
     [Header("Environment Sounds")]
     [SerializeField] private AudioClip paperSoundClip;
+    [SerializeField] [Range(0f, 1f)] private float paperSoundVolume = 1f;
     [SerializeField] private AudioClip doorKnockClip;
+    [SerializeField] [Range(0f, 1f)] private float doorKnockVolume = 1f;
 
     [Header("Breathing / Panic Sounds")]
     [SerializeField] private AudioClip breathingHeavyClip;
+    [SerializeField] [Range(0f, 1f)] private float breathingHeavyVolume = 1f;
     [SerializeField] private AudioClip inhaleClip;
+    [SerializeField] [Range(0f, 1f)] private float inhaleVolume = 1f;
     [SerializeField] private AudioClip exhaleClip;
+    [SerializeField] [Range(0f, 1f)] private float exhaleVolume = 1f;
     [SerializeField] private AudioClip heartbeatClip;
+    [SerializeField] [Range(0f, 1f)] private float heartbeatVolume = 1f;
     [SerializeField] private AudioClip peopleJudgingClip;
+    [SerializeField] [Range(0f, 1f)] private float peopleJudgingVolume = 1f;
 
     [Header("Voice")]
     [Tooltip("AudioSource used for NPC voice clips (assigned at runtime via PlayNpcClip).")]
@@ -78,19 +93,55 @@ public class AudioManager : MonoBehaviour
     [Tooltip("AudioSource used for Narrator voice clips (assigned at runtime via PlayNarratorClip).")]
     [SerializeField] private AudioSource narratorVoiceSource;
 
-    [Tooltip("Player inner-voice clip: played after the NPC call cuts off. " +
-             "Should sound like: 'I should call them back...'.")]
+    [Tooltip("Player inner-voice clip: played after the NPC call cuts off.")]
     [SerializeField] private AudioClip playerVoiceCallBackClip;
+    [SerializeField] [Range(0f, 1f)] private float playerVoiceCallBackVolume = 1f;
+
+    [Tooltip("Player inner-voice clip: played when the player enters the Illusion Room.")]
+    [SerializeField] private AudioClip playerVoiceIllusionBathroomClip;
+    [SerializeField] [Range(0f, 1f)] private float playerVoiceIllusionBathroomVolume = 1f;
+
+    [Tooltip("Dedicated AudioSource for special one-shot player voice lines (callback, bathroom). " +
+             "Set Output → InnerVoice mixer group for the in-head DSP effect.")]
+    [SerializeField] private AudioSource playerInnerVoiceSource;
 
     [Header("Negative Voices")]
     [Tooltip("A pool of negative inner-voice clips. A random one is chosen each time.")]
     [SerializeField] private AudioClip[] negativeVoiceClips;
+    [Tooltip("Volume modifier for negative voice clips.")]
+    [SerializeField] [Range(0f, 1f)] private float negativeVoiceVolume = 1f;
+    [Tooltip("AudioSource for negative voice clips. Output → InnerVoice mixer group.")]
     [SerializeField] private AudioSource negativeVoiceSource;
 
     [Tooltip("Minimum seconds between negative voice triggers at 50% anxiety.")]
     [SerializeField] private float negativeVoiceMinInterval = 12f;
     [Tooltip("Minimum seconds between negative voice triggers at 100% anxiety.")]
     [SerializeField] private float negativeVoiceMaxFreqInterval = 3f;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  INSPECTOR — Audio Mixer & Volume Control
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Header("Audio Mixer")]
+    [Tooltip("The GameAudioMixer asset. Create via Window → Audio → Audio Mixer. " +
+             "Expose mixer group volumes as parameters named: MusicVol, SFXVol, VoiceVol, InnerVoiceVol.")]
+    [SerializeField] private AudioMixer audioMixer;
+
+    [Header("Volume Control (0 = silent, 1 = full)")]
+    [Tooltip("Overall master volume scale.")]
+    [SerializeField] [Range(0f, 1f)] private float masterVolume = 1f;
+    [Tooltip("Music tracks volume.")]
+    [SerializeField] [Range(0f, 1f)] private float musicVolume = 1f;
+    [Tooltip("Sound effects volume.")]
+    [SerializeField] [Range(0f, 1f)] private float sfxVolume = 1f;
+    [Tooltip("NPC and Narrator voice volume.")]
+    [SerializeField] [Range(0f, 1f)] private float voiceVolume = 1f;
+    [Tooltip("Inner voice / intrusive thoughts volume.")]
+    [SerializeField] [Range(0f, 1f)] private float innerVoiceVolume = 0.9f;
+
+    // cached to detect changes
+    private float _prevMaster = -1f, _prevMusic = -1f, _prevSfx = -1f,
+                  _prevVoice = -1f, _prevInnerVoice = -1f;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — Music
@@ -104,8 +155,7 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Seconds to cross-fade between music tracks.")]
     [SerializeField] private float musicFadeDuration = 2.5f;
 
-    [Tooltip("Anxiety normalized value (0–1) at which music switches to tense. 0.5 = 50%.")]
-    [SerializeField] [Range(0f, 1f)] private float tenseMusicThreshold = 0.5f;
+    private float TenseMusicThreshold => AnxietyManager.Instance != null ? AnxietyManager.Instance.NormalizedExtremeThreshold : 0.65f;
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — General AudioSource (for one-shots)
@@ -187,8 +237,24 @@ public class AudioManager : MonoBehaviour
             AnxietyManager.Instance.OnPanicAttackEnded   += HandlePanicEnded;
         }
 
+        // Apply initial mixer volumes
+        ApplyMixerVolumes();
+
         // Start main music
         SetMusicState(MusicState.Normal);
+    }
+
+    void Update()
+    {
+        // Detect Inspector slider changes at runtime and apply to mixer
+        if (!Mathf.Approximately(masterVolume,     _prevMaster)     ||
+            !Mathf.Approximately(musicVolume,      _prevMusic)      ||
+            !Mathf.Approximately(sfxVolume,        _prevSfx)        ||
+            !Mathf.Approximately(voiceVolume,      _prevVoice)      ||
+            !Mathf.Approximately(innerVoiceVolume, _prevInnerVoice))
+        {
+            ApplyMixerVolumes();
+        }
     }
 
     void OnDestroy()
@@ -205,12 +271,24 @@ public class AudioManager : MonoBehaviour
     //  PUBLIC API — Sound Effects
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Plays a one-shot sound effect (fire and forget).</summary>
+    /// <summary>Plays a one-shot sound effect (fire and forget).
+    /// Player inner-voice IDs are routed to playerInnerVoiceSource (InnerVoice mixer group).
+    /// </summary>
     public void PlayOneShot(SoundID id)
     {
         AudioClip clip = GetClip(id);
+        float volume = GetClipVolume(id);
         if (clip == null) { LogMissing(id); return; }
-        sfxSource.PlayOneShot(clip);
+
+        // Route player inner-voice lines through dedicated source (InnerVoice mixer group)
+        if ((id == SoundID.PlayerVoiceCallBack || id == SoundID.PlayerVoiceIllusionBathroom)
+             && playerInnerVoiceSource != null)
+        {
+            playerInnerVoiceSource.PlayOneShot(clip, volume);
+            return;
+        }
+
+        sfxSource.PlayOneShot(clip, volume);
     }
 
     /// <summary>
@@ -228,11 +306,8 @@ public class AudioManager : MonoBehaviour
         loopSource.clip = id == SoundID.None ? null : clip;
         loopSource.loop = true;
         
-        // Adjust volume specifically for phone rings
-        if (id == SoundID.CellphoneRing || id == SoundID.OfficephoneRing)
-            loopSource.volume = phoneRingVolume;
-        else
-            loopSource.volume = _defaultLoopVol;
+        // Adjust volume specifically based on the inspector setting
+        loopSource.volume = GetClipVolume(id) * _defaultLoopVol;
 
         loopSource.Play();
         _currentLoop = id;
@@ -288,7 +363,7 @@ public class AudioManager : MonoBehaviour
             loopSource.Stop();
             loopSource.clip   = breathClip;
             loopSource.loop   = true;
-            loopSource.volume = _defaultLoopVol * _masterScale;
+            loopSource.volume = GetClipVolume(SoundID.BreathingHeavy) * _defaultLoopVol * _masterScale;
             loopSource.Play();
             _currentLoop = SoundID.BreathingHeavy;
         }
@@ -301,7 +376,7 @@ public class AudioManager : MonoBehaviour
             heartbeatLoopSource.Stop();
             heartbeatLoopSource.clip   = heartClip;
             heartbeatLoopSource.loop   = true;
-            heartbeatLoopSource.volume = _defaultHeartbeatVol * _masterScale;
+            heartbeatLoopSource.volume = GetClipVolume(SoundID.Heartbeat) * _defaultHeartbeatVol * _masterScale;
             heartbeatLoopSource.Play();
         }
         else LogMissing(SoundID.Heartbeat);
@@ -399,7 +474,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        sfxSource.PlayOneShot(clip);
+        sfxSource.PlayOneShot(clip, GetClipVolume(id));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -445,6 +520,15 @@ public class AudioManager : MonoBehaviour
     // ═══════════════════════════════════════════════════════════════════════
 
     /// <summary>
+    /// Sets the master volume scale (0 to 1). Hook this up to a UI Slider's OnValueChanged event!
+    /// </summary>
+    public void SetMasterVolume(float volume)
+    {
+        masterVolume = Mathf.Clamp01(volume);
+        ApplyMixerVolumes();
+    }
+
+    /// <summary>
     /// Fade the looping sound source volume over time.
     /// Used by PanicAttackController to ramp breathing/heartbeat intensity.
     /// </summary>
@@ -481,16 +565,16 @@ public class AudioManager : MonoBehaviour
         // Music state machine
         if (_musicState != MusicState.Open) // don't override open room music
         {
-            if (normalized >= tenseMusicThreshold && _musicState != MusicState.Tense)
+            if (normalized >= TenseMusicThreshold && _musicState != MusicState.Tense)
                 SetMusicState(MusicState.Tense);
-            else if (normalized < tenseMusicThreshold && _musicState == MusicState.Tense)
+            else if (normalized < TenseMusicThreshold && _musicState == MusicState.Tense)
                 SetMusicState(MusicState.Normal);
         }
 
         // Negative voices — start scheduler above threshold, stop below
-        if (normalized >= tenseMusicThreshold && !_negativeVoicesActive)
+        if (normalized >= TenseMusicThreshold && !_negativeVoicesActive)
             StartNegativeVoices();
-        else if (normalized < tenseMusicThreshold && _negativeVoicesActive)
+        else if (normalized < TenseMusicThreshold && _negativeVoicesActive)
             StopNegativeVoices();
     }
 
@@ -538,14 +622,14 @@ public class AudioManager : MonoBehaviour
                 AudioClip clip = negativeVoiceClips[Random.Range(0, negativeVoiceClips.Length)];
                 if (clip != null)
                 {
-                    negativeVoiceSource.PlayOneShot(clip);
+                    negativeVoiceSource.PlayOneShot(clip, negativeVoiceVolume);
                     Debug.Log($"[AudioManager] Negative voice played: {clip.name}");
                 }
             }
 
             // Interval shrinks as anxiety rises (more frequent at high anxiety)
             float normalized = AnxietyManager.Instance != null ? AnxietyManager.Instance.NormalizedAnxiety : 0.5f;
-            float t = Mathf.Clamp01((normalized - tenseMusicThreshold) / (1f - tenseMusicThreshold));
+            float t = Mathf.Clamp01((normalized - TenseMusicThreshold) / (1f - TenseMusicThreshold));
             float interval = Mathf.Lerp(negativeVoiceMinInterval, negativeVoiceMaxFreqInterval, t);
 
             // Add a little randomness so it never feels mechanical
@@ -636,24 +720,48 @@ public class AudioManager : MonoBehaviour
 
     AudioClip GetClip(SoundID id) => id switch
     {
-        SoundID.DoorOpen              => doorOpenClip,
-        SoundID.DoorClose             => doorCloseClip,
-        SoundID.ButtonClick           => buttonClickClip,
-        SoundID.RightAnswer           => rightAnswerClip,
-        SoundID.WrongAnswer           => wrongAnswerClip,
-        SoundID.CellphoneRing         => cellphoneRingClip,
-        SoundID.OfficephoneRing       => officephoneRingClip,
-        SoundID.CallCutOff            => callCutOffClip,
-        SoundID.CallbackUnavailable   => callbackUnavailableClip,
-        SoundID.PaperSound            => paperSoundClip,
-        SoundID.DoorKnock             => doorKnockClip,
-        SoundID.BreathingHeavy        => breathingHeavyClip,
-        SoundID.Inhale                => inhaleClip,
-        SoundID.Exhale                => exhaleClip,
-        SoundID.Heartbeat             => heartbeatClip,
-        SoundID.PeopleJudging         => peopleJudgingClip,
-        SoundID.PlayerVoiceCallBack    => playerVoiceCallBackClip,
-        _                             => null
+        SoundID.DoorOpen                    => doorOpenClip,
+        SoundID.DoorClose                   => doorCloseClip,
+        SoundID.ButtonClick                 => buttonClickClip,
+        SoundID.RightAnswer                 => rightAnswerClip,
+        SoundID.WrongAnswer                 => wrongAnswerClip,
+        SoundID.CellphoneRing               => cellphoneRingClip,
+        SoundID.OfficephoneRing             => officephoneRingClip,
+        SoundID.CallCutOff                  => callCutOffClip,
+        SoundID.CallbackUnavailable         => callbackUnavailableClip,
+        SoundID.PaperSound                  => paperSoundClip,
+        SoundID.DoorKnock                   => doorKnockClip,
+        SoundID.BreathingHeavy              => breathingHeavyClip,
+        SoundID.Inhale                      => inhaleClip,
+        SoundID.Exhale                      => exhaleClip,
+        SoundID.Heartbeat                   => heartbeatClip,
+        SoundID.PeopleJudging               => peopleJudgingClip,
+        SoundID.PlayerVoiceCallBack         => playerVoiceCallBackClip,
+        SoundID.PlayerVoiceIllusionBathroom => playerVoiceIllusionBathroomClip,
+        _                                   => null
+    };
+
+    float GetClipVolume(SoundID id) => id switch
+    {
+        SoundID.DoorOpen                    => doorOpenVolume,
+        SoundID.DoorClose                   => doorCloseVolume,
+        SoundID.ButtonClick                 => buttonClickVolume,
+        SoundID.RightAnswer                 => rightAnswerVolume,
+        SoundID.WrongAnswer                 => wrongAnswerVolume,
+        SoundID.CellphoneRing               => phoneRingVolume,
+        SoundID.OfficephoneRing             => phoneRingVolume,
+        SoundID.CallCutOff                  => callCutOffVolume,
+        SoundID.CallbackUnavailable         => callbackUnavailableVolume,
+        SoundID.PaperSound                  => paperSoundVolume,
+        SoundID.DoorKnock                   => doorKnockVolume,
+        SoundID.BreathingHeavy              => breathingHeavyVolume,
+        SoundID.Inhale                      => inhaleVolume,
+        SoundID.Exhale                      => exhaleVolume,
+        SoundID.Heartbeat                   => heartbeatVolume,
+        SoundID.PeopleJudging               => peopleJudgingVolume,
+        SoundID.PlayerVoiceCallBack         => playerVoiceCallBackVolume,
+        SoundID.PlayerVoiceIllusionBathroom => playerVoiceIllusionBathroomVolume,
+        _                                   => 1f
     };
 
     IEnumerator FadeVolumeRoutine(AudioSource src, float target, float duration)
@@ -668,6 +776,30 @@ public class AudioManager : MonoBehaviour
             yield return null;
         }
         src.volume = target;
+    }
+
+    void ApplyMixerVolumes()
+    {
+        _prevMaster     = masterVolume;
+        _prevMusic      = musicVolume;
+        _prevSfx        = sfxVolume;
+        _prevVoice      = voiceVolume;
+        _prevInnerVoice = innerVoiceVolume;
+
+        // AudioMixer volumes are in decibels. Convert linear 0-1 to dB.
+        // Clamp to avoid log(0). -80dB is effectively silent.
+        if (audioMixer == null) return;
+
+        audioMixer.SetFloat("MasterVol",     LinearToDecibel(masterVolume));
+        audioMixer.SetFloat("MusicVol",      LinearToDecibel(musicVolume      * masterVolume));
+        audioMixer.SetFloat("SFXVol",        LinearToDecibel(sfxVolume        * masterVolume));
+        audioMixer.SetFloat("VoiceVol",      LinearToDecibel(voiceVolume      * masterVolume));
+        audioMixer.SetFloat("InnerVoiceVol", LinearToDecibel(innerVoiceVolume * masterVolume));
+    }
+
+    static float LinearToDecibel(float linear)
+    {
+        return linear > 0.0001f ? 20f * Mathf.Log10(linear) : -80f;
     }
 
     void LogMissing(SoundID id) =>

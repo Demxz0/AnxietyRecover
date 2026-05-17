@@ -3,34 +3,32 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using TMPro;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Exit Door Ending Sequence:
-///   Phase 1 — Scene gradually blurs and washes out to white (via Post Processing).
-///   Phase 2 — A cinematic radial light burst (lens flare effect) explodes from the center,
-///              built from layered UI rays + a bloom pulse, consuming the screen entirely.
+///
+///   Phase 1 — Scene gradually blurs and washes out to pure white (Post Processing).
+///   Phase 2 — Two sequential Arabic texts appear with slide+fade animation on the white screen.
+///             The OpenRoomMusic keeps playing throughout (AudioManager persists via DontDestroyOnLoad).
+///             After the second text fades out, the MainMenu scene is loaded.
 ///
 /// SETUP:
 /// ──────────────────────────────────────────────────────────────────────
 /// POST PROCESSING:
-///   1. Add a Global Volume to your scene (GameObject > Volume > Global Volume).
-///   2. Create a new Volume Profile and add:
-///        - "Vignette"
-///        - "Bloom"
-///        - "Color Adjustments" (or "Color Grading" in older URP)
-///        - "Depth Of Field" (Gaussian or Bokeh mode)
-///   3. Set ALL their intensities/weights to 0 at start — this script drives them.
-///   4. Assign the Volume to "postProcessVolume" below.
+///   1. Add a Global Volume to your scene with a Volume Profile containing:
+///        - Bloom
+///        - Depth Of Field (Gaussian mode recommended)
+///        - Color Adjustments
+///   2. Set all intensities to 0 at start — this script drives them.
+///   3. Assign the Volume to "postProcessVolume".
 ///
 /// CANVAS (Sort Order 100+):
-///   5. "whiteFadeImage"  — full-screen white Image, alpha 0.
-///   6. "lensFlareRoot"   — an empty RectTransform anchored to center.
-///        Under it, add 6–8 white Images (thin rectangles rotated at even angles,
-///        e.g. 0°, 30°, 60°, 90°, 120°, 150° — like sun ray spokes).
-///        Each ray: Width ~8, Height ~1200, pivot at bottom center (so they radiate outward).
-///        Set all alphas to 0.
-///   7. "centerGlowImage" — a white circle Image anchored to center (~200×200px), alpha 0.
-///        Use a soft radial gradient sprite for best results.
+///   4. "whiteFadeImage"  — full-screen white Image, alpha 0.
+///   5. "endText1"        — TextMeshProUGUI, Arabic text 1 ("أنت لست وحدك , اطلب المساعدة"), alpha 0.
+///   6. "endText2"        — TextMeshProUGUI, Arabic text 2 ("نشكركم للعب"), alpha 0.
+///   Both texts should be centered on screen, font size 60+, white color.
 /// ──────────────────────────────────────────────────────────────────────
 /// </summary>
 public class ExitDoorInteraction : MonoBehaviour, IInteractable
@@ -52,28 +50,35 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
     [Tooltip("Max Bloom intensity at peak of phase 1.")]
     [SerializeField] private float maxBloomIntensity = 8f;
 
-    [Header("Phase 2 – Lens Flare Burst")]
-    [Tooltip("Empty RectTransform at screen center. Parent of all ray Images.")]
-    [SerializeField] private RectTransform lensFlareRoot;
+    [Header("Phase 2 – Ending Texts")]
+    [Tooltip("First Arabic text: 'أنت لست وحدك , اطلب المساعدة'")]
+    [SerializeField] private TextMeshProUGUI endText1;
 
-    [Tooltip("The individual ray Images under lensFlareRoot.")]
-    [SerializeField] private Image[] rays;
+    [Tooltip("Second Arabic text: 'نشكركم للعب'")]
+    [SerializeField] private TextMeshProUGUI endText2;
 
-    [Tooltip("Soft glowing circle at the center of the burst.")]
-    [SerializeField] private Image centerGlowImage;
+    [Tooltip("How long each text fades IN (seconds).")]
+    [SerializeField] private float textFadeInDuration = 1.5f;
 
-    [Tooltip("How long the lens flare burst + final whiteout takes (seconds).")]
-    [SerializeField] private float burstDuration = 2.5f;
+    [Tooltip("How long each text stays fully visible (seconds).")]
+    [SerializeField] private float textHoldDuration = 3f;
 
-    [Tooltip("Max scale the rays grow to (higher = longer rays).")]
-    [SerializeField] private float rayMaxScale = 3.5f;
+    [Tooltip("How long each text fades OUT (seconds).")]
+    [SerializeField] private float textFadeOutDuration = 1.5f;
 
-    [Tooltip("Pause between phase 1 and phase 2 (seconds).")]
-    [SerializeField] private float pauseBetweenPhases = 0.3f;
+    [Tooltip("How many pixels the text slides vertically during fade in/out.")]
+    [SerializeField] private float textSlideDistance = 40f;
+
+    [Tooltip("Short pause between Text 1 disappearing and Text 2 appearing (seconds).")]
+    [SerializeField] private float gapBetweenTexts = 0.5f;
+
+    [Header("Scene")]
+    [Tooltip("Exact scene name to load after the ending. Must match Build Settings.")]
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     // Post processing overrides
-    private Bloom _bloom;
-    private DepthOfField _dof;
+    private Bloom            _bloom;
+    private DepthOfField     _dof;
     private ColorAdjustments _colorAdjust;
 
     private bool _hasTriggered = false;
@@ -90,25 +95,10 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
 
         // Hide all UI elements at start
         SetImageAlpha(whiteFadeImage, 0f);
-        if (whiteFadeImage) whiteFadeImage.gameObject.SetActive(false);
+        if (whiteFadeImage != null) whiteFadeImage.gameObject.SetActive(false);
 
-        if (lensFlareRoot) lensFlareRoot.gameObject.SetActive(false);
-
-        if (centerGlowImage)
-        {
-            SetImageAlpha(centerGlowImage, 0f);
-            centerGlowImage.rectTransform.localScale = Vector3.zero;
-        }
-
-        if (rays != null)
-        {
-            foreach (var ray in rays)
-            {
-                if (ray == null) continue;
-                SetImageAlpha(ray, 0f);
-                ray.rectTransform.localScale = new Vector3(1f, 0f, 1f);
-            }
-        }
+        SetTMPAlpha(endText1, 0f);
+        SetTMPAlpha(endText2, 0f);
     }
 
     public void Interact()
@@ -116,10 +106,10 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
         if (_hasTriggered) return;
         _hasTriggered = true;
 
-        Debug.Log("[ExitDoor] Triggering cinematic ending...");
+        Debug.Log("[ExitDoor] Triggering ending sequence...");
 
         PlayerMovement.CanMove = false;
-        MouseLook.CanLook = false;
+        MouseLook.CanLook      = false;
 
         StartCoroutine(EndingSequence());
     }
@@ -133,42 +123,37 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
     private IEnumerator EndingSequence()
     {
         yield return StartCoroutine(Phase1_BlurAndWashout());
-        yield return new WaitForSeconds(pauseBetweenPhases);
-        yield return StartCoroutine(Phase2_LensFlareBurst());
+        yield return StartCoroutine(Phase2_TextSequence());
 
-        Debug.Log("[ExitDoor] Ending complete.");
-        // UnityEngine.SceneManagement.SceneManager.LoadScene("CreditsScene");
+        Debug.Log("[ExitDoor] Ending complete — loading MainMenu.");
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     //  PHASE 1 — Progressive blur + white washout
-    //  The world loses focus and bleaches out, as if overwhelmed by incoming light.
     // ─────────────────────────────────────────────────────────────────────────
 
     private IEnumerator Phase1_BlurAndWashout()
     {
-        if (whiteFadeImage) whiteFadeImage.gameObject.SetActive(true);
+        if (whiteFadeImage != null) whiteFadeImage.gameObject.SetActive(true);
 
         float elapsed = 0f;
 
         while (elapsed < blurWashDuration)
         {
             elapsed += Time.deltaTime;
-            // Use an eased curve: slow start, accelerates toward the end
-            float t = Mathf.Clamp01(elapsed / blurWashDuration);
+            float t     = Mathf.Clamp01(elapsed / blurWashDuration);
             float eased = Mathf.Pow(t, 1.6f); // gentle ease-in
 
-            // ── Depth of Field (blur) ──────────────────────────────
+            // Depth of Field blur
             if (_dof != null)
             {
-                // Gaussian DOF: increase blur size progressively
                 if (_dof.mode.value == DepthOfFieldMode.Gaussian)
                 {
                     _dof.gaussianStart.Override(Mathf.Lerp(0f, 0.01f, eased));
                     _dof.gaussianEnd.Override(Mathf.Lerp(100f, 0.1f, eased));
                     _dof.gaussianMaxRadius.Override(Mathf.Lerp(0f, maxBlurAmount, eased));
                 }
-                // Bokeh DOF fallback
                 else
                 {
                     _dof.focusDistance.Override(Mathf.Lerp(10f, 0.1f, eased));
@@ -176,110 +161,92 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
                 }
             }
 
-            // ── Bloom (light bleed) ────────────────────────────────
+            // Bloom
             if (_bloom != null)
             {
                 _bloom.intensity.Override(Mathf.Lerp(0f, maxBloomIntensity, eased));
-                _bloom.threshold.Override(Mathf.Lerp(1f, 0.1f, eased)); // lower = more blooms
-                _bloom.scatter.Override(Mathf.Lerp(0.7f, 1f, eased));   // spread the bloom wider
+                _bloom.threshold.Override(Mathf.Lerp(1f, 0.1f, eased));
+                _bloom.scatter.Override(Mathf.Lerp(0.7f, 1f, eased));
             }
 
-            // ── Color shift toward overexposed white ───────────────
+            // Color shift to white
             if (_colorAdjust != null)
             {
-                // Lift exposure: scene gets blown out like looking into a light
                 _colorAdjust.postExposure.Override(Mathf.Lerp(0f, 4f, eased));
-                // Desaturate: colors bleed away
                 _colorAdjust.saturation.Override(Mathf.Lerp(0f, -100f, eased));
             }
 
-            // ── White overlay: subtle wash, the PP does most of the work ──
-            SetImageAlpha(whiteFadeImage, Mathf.Lerp(0f, 0.35f, eased));
+            // White overlay — ramps to full at the end
+            SetImageAlpha(whiteFadeImage, Mathf.Lerp(0f, 1f, eased));
 
             yield return null;
         }
 
-        // Snap to max blur state
-        SetImageAlpha(whiteFadeImage, 0.35f);
+        // Snap to pure white
+        SetImageAlpha(whiteFadeImage, 1f);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  PHASE 2 — Cinematic radial lens flare bursts from center
-    //  Rays shoot outward in a staggered starburst, center glow pulses,
-    //  then everything floods to pure white.
+    //  PHASE 2 — Two Arabic texts with slide + fade animation
+    //  OpenRoomMusic keeps playing (AudioManager is DontDestroyOnLoad).
     // ─────────────────────────────────────────────────────────────────────────
 
-    private IEnumerator Phase2_LensFlareBurst()
+    private IEnumerator Phase2_TextSequence()
     {
-        if (lensFlareRoot) lensFlareRoot.gameObject.SetActive(true);
+        // Show Text 1
+        yield return StartCoroutine(AnimateText(endText1, fadeIn: true));
+        yield return new WaitForSeconds(textHoldDuration);
+        yield return StartCoroutine(AnimateText(endText1, fadeIn: false));
+
+        yield return new WaitForSeconds(gapBetweenTexts);
+
+        // Show Text 2
+        yield return StartCoroutine(AnimateText(endText2, fadeIn: true));
+        yield return new WaitForSeconds(textHoldDuration);
+        yield return StartCoroutine(AnimateText(endText2, fadeIn: false));
+    }
+
+    /// <summary>
+    /// Fades a TMP text in (alpha 0→1, slides up) or out (alpha 1→0, slides down).
+    /// </summary>
+    private IEnumerator AnimateText(TextMeshProUGUI text, bool fadeIn)
+    {
+        if (text == null) yield break;
+
+        text.gameObject.SetActive(true);
+
+        float duration  = fadeIn ? textFadeInDuration : textFadeOutDuration;
+        float startAlpha = fadeIn ? 0f : 1f;
+        float endAlpha   = fadeIn ? 1f : 0f;
+
+        // Slide: fade in = slide up (start low, end at origin), fade out = slide down
+        RectTransform rt = text.rectTransform;
+        Vector2 originalPos = rt.anchoredPosition;
+        Vector2 startPos = fadeIn
+            ? originalPos + Vector2.down * textSlideDistance
+            : originalPos;
+        Vector2 endPos = fadeIn
+            ? originalPos
+            : originalPos + Vector2.down * textSlideDistance;
 
         float elapsed = 0f;
 
-        // Beat 1 (0–40%): center glow pulses in fast
-        // Beat 2 (20–80%): rays shoot outward with stagger
-        // Beat 3 (60–100%): everything washes to pure white
-
-        while (elapsed < burstDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / burstDuration);
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
 
-            // ── CENTER GLOW ────────────────────────────────────────
-            // Grows quickly from center, punchy ease-out
-            float glowT = Mathf.Clamp01(t / 0.4f);
-            float glowEased = 1f - Mathf.Pow(1f - glowT, 3f); // ease-out cubic
-            if (centerGlowImage)
-            {
-                centerGlowImage.rectTransform.localScale = Vector3.one * Mathf.Lerp(0f, 2.5f, glowEased);
-                SetImageAlpha(centerGlowImage, Mathf.Lerp(0f, 1f, glowEased));
-            }
-
-            // ── RAYS ───────────────────────────────────────────────
-            // Rays stagger outward: each ray has its own delay offset
-            if (rays != null)
-            {
-                int rayCount = rays.Length;
-                for (int i = 0; i < rayCount; i++)
-                {
-                    if (rays[i] == null) continue;
-
-                    // Stagger: each ray starts slightly after the previous
-                    float delay = (float)i / rayCount * 0.25f; // spread over first 25% of phase
-                    float rayT = Mathf.Clamp01((t - 0.15f - delay) / 0.6f);
-                    float rayEased = 1f - Mathf.Pow(1f - rayT, 2.5f); // ease-out
-
-                    // Rays grow outward (Y scale = length)
-                    rays[i].rectTransform.localScale = new Vector3(
-                        Mathf.Lerp(1f, 1f + (float)i * 0.04f, rayEased),   // slight width variation
-                        Mathf.Lerp(0f, rayMaxScale, rayEased),              // length shoots out
-                        1f
-                    );
-
-                    // Rays fade in quickly then hold
-                    float rayAlpha = Mathf.Clamp01(rayT * 3f);
-                    SetImageAlpha(rays[i], rayAlpha);
-                }
-            }
-
-            // ── BLOOM PULSE ────────────────────────────────────────
-            // Spike bloom during burst for cinematic punch
-            if (_bloom != null)
-            {
-                float burstBloom = Mathf.Clamp01(t / 0.5f);
-                _bloom.intensity.Override(Mathf.Lerp(maxBloomIntensity, maxBloomIntensity * 2.5f, burstBloom));
-            }
-
-            // ── FINAL WHITEOUT (last 40%) ──────────────────────────
-            float whiteT = Mathf.Clamp01((t - 0.6f) / 0.4f);
-            float whiteEased = Mathf.SmoothStep(0f, 1f, whiteT);
-            SetImageAlpha(whiteFadeImage, Mathf.Lerp(0.35f, 1f, whiteEased));
+            SetTMPAlpha(text, Mathf.Lerp(startAlpha, endAlpha, t));
+            rt.anchoredPosition = Vector2.Lerp(startPos, endPos, t);
 
             yield return null;
         }
 
-        // Snap fully white
-        SetImageAlpha(whiteFadeImage, 1f);
-        if (centerGlowImage) SetImageAlpha(centerGlowImage, 1f);
+        SetTMPAlpha(text, endAlpha);
+        rt.anchoredPosition = endPos;
+
+        if (!fadeIn)
+            text.gameObject.SetActive(false);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -292,5 +259,13 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
         Color c = img.color;
         c.a = alpha;
         img.color = c;
+    }
+
+    private void SetTMPAlpha(TextMeshProUGUI tmp, float alpha)
+    {
+        if (tmp == null) return;
+        Color c = tmp.color;
+        c.a = alpha;
+        tmp.color = c;
     }
 }

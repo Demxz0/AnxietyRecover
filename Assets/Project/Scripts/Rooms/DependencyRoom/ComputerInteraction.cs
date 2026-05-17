@@ -132,6 +132,8 @@ public class ComputerInteraction : MonoBehaviour, IInteractable
                 GameStateManager.Instance.SetComputerUnlocked();
                 if (DependencyRoomManager.Instance != null)
                     DependencyRoomManager.Instance.OnComputerAccessed();
+                if (AnxietyManager.Instance != null)
+                    AnxietyManager.Instance.ReduceOneLevel();
                 Debug.Log("[Computer] Desktop unlocked — password correct!");
             }
         }

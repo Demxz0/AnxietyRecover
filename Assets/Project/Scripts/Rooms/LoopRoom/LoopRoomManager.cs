@@ -322,6 +322,10 @@ public class LoopRoomManager : MonoBehaviour
         }
 
         GameStateManager.Instance?.CompleteLoopRoom();
+
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.StartGradualReduction(0f, 2f);
+
         Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE!");
     }
 

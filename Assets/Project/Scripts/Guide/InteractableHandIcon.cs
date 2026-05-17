@@ -38,8 +38,12 @@ public class InteractableHandIcon : MonoBehaviour
     [Tooltip("Distance (meters) at which the hand icon becomes visible.")]
     [SerializeField] private float showRadius = 4.5f;
 
+    public enum BobAxis { X, Y, Z }
+
     [Header("Bob Animation")]
-    [Tooltip("Vertical bob amplitude in world units.")]
+    [Tooltip("Which axis the icon bobs on.")]
+    [SerializeField] private BobAxis bobAxis = BobAxis.Y;
+    [Tooltip("Bob amplitude in world units.")]
     [SerializeField] private float bobAmplitude = 0.06f;
     [Tooltip("Cycles per second for the bob.")]
     [SerializeField] private float bobFrequency = 1.2f;
@@ -108,7 +112,13 @@ public class InteractableHandIcon : MonoBehaviour
         if (_currentAlpha > 0f && handIconCanvas != null)
         {
             float bobOffset = Mathf.Sin(Time.time * bobFrequency * Mathf.PI * 2f) * bobAmplitude;
-            handIconCanvas.transform.localPosition = _baseLocalPosition + Vector3.up * bobOffset;
+            Vector3 offsetVector = bobAxis switch {
+                BobAxis.X => Vector3.right,
+                BobAxis.Y => Vector3.up,
+                BobAxis.Z => Vector3.forward,
+                _ => Vector3.up
+            };
+            handIconCanvas.transform.localPosition = _baseLocalPosition + offsetVector * bobOffset;
         }
     }
 

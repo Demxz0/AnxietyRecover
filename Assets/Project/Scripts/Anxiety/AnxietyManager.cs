@@ -29,6 +29,12 @@ public class AnxietyManager : MonoBehaviour
     [Tooltip("Extreme → Panic level (bar turns red, but panic ATTACK not yet triggered)")]
     [SerializeField] private float panicThreshold   = 85f;
 
+    public float MildThreshold => mildThreshold;
+    public float ExtremeThreshold => extremeThreshold;
+    
+    public float NormalizedMildThreshold => mildThreshold / maxAnxiety;
+    public float NormalizedExtremeThreshold => extremeThreshold / maxAnxiety;
+
     [Header("Panic Attack — Bar Triggered")]
     [Tooltip("Anxiety must reach this value to trigger a bar-based panic attack. " +
              "Medication lowers this over time.")]
@@ -131,6 +137,30 @@ public class AnxietyManager : MonoBehaviour
     public void ReduceAnxiety(float amount)
     {
         _anxietyValue = Mathf.Clamp(_anxietyValue - amount, 0f, maxAnxiety);
+        NotifyChange();
+    }
+
+    /// <summary>
+    /// Reduces anxiety to a specific target over a given duration.
+    /// Useful for fast drops after major puzzle completions or reaching safe areas.
+    /// </summary>
+    public void StartGradualReduction(float targetAnxiety, float duration)
+    {
+        StartCoroutine(GradualReductionRoutine(targetAnxiety, duration));
+    }
+
+    private IEnumerator GradualReductionRoutine(float targetAnxiety, float duration)
+    {
+        float startAnxiety = _anxietyValue;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            _anxietyValue = Mathf.Lerp(startAnxiety, targetAnxiety, elapsed / duration);
+            NotifyChange();
+            yield return null;
+        }
+        _anxietyValue = targetAnxiety;
         NotifyChange();
     }
 

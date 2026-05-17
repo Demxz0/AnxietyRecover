@@ -13,11 +13,26 @@ using UnityEngine;
 [RequireComponent(typeof(CanvasItemInteraction))]
 public class StickyNoteInteraction : MonoBehaviour
 {
-    // This script is intentionally minimal.
-    // The CanvasItemInteraction component handles all display logic.
-    // The note just shows the hint — no game state changes needed.
-    void Start()
+    private CanvasItemInteraction _canvas;
+
+    void Awake()
     {
-        Debug.Log("[StickyNote] Ready. Canvas shows hint: 'Time is your friend...'");
+        _canvas = GetComponent<CanvasItemInteraction>();
+        if (_canvas != null)
+            _canvas.OnFirstInteracted += HandleFirstRead;
+    }
+
+    void OnDestroy()
+    {
+        if (_canvas != null)
+            _canvas.OnFirstInteracted -= HandleFirstRead;
+    }
+
+    void HandleFirstRead()
+    {
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.ReduceOneLevel();
+            
+        Debug.Log("[StickyNote] Sticky note read — anxiety reduced.");
     }
 }

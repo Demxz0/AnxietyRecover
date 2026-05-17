@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
+
 /// <summary>
 /// Orchestrates the entire Illusion Room (Bedroom) experience.
 ///
@@ -91,17 +92,24 @@ public class IllusionRoomManager : MonoBehaviour
         SetSilhouettes(true);
         StartVoices(voicesNormalVolume);
 
-        // Immediately spike anxiety to 50 % of max, then the continuous routine
-        // raises it slowly from there.
-        if (AnxietyManager.Instance != null)
-        {
-            float spikeTarget = AnxietyManager.Instance.MaxAnxiety * 0.5f;
-            if (AnxietyManager.Instance.AnxietyValue < spikeTarget)
-                AnxietyManager.Instance.SetAnxiety(spikeTarget);
-        }
-
         _anxietyCoroutine = StartCoroutine(ContinuousAnxietyRoutine());
+
+        // Player inner voice: "I have to hide in the bathroom"
+        // Plays 2.5 seconds after entering — the voices have started and the player
+        // is disoriented, so this line misdirects them toward the bathroom.
+        StartCoroutine(PlayBathroomMisdirectionVoice());
+
+        // Notify InnerVoiceManager of the new zone (clips only play at ExtremeAnxiety+)
+        InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.IllusionRoom);
+
         Debug.Log("[IllusionRoom] Player entered — illusion active. Anxiety spiked to 50 %.");
+    }
+
+    IEnumerator PlayBathroomMisdirectionVoice()
+    {
+        yield return new WaitForSeconds(2.5f);
+        if (IsIllusionActive) // still in the room after the delay
+            AudioManager.Instance?.PlayOneShot(SoundID.PlayerVoiceIllusionBathroom);
     }
 
     // ─── Bathroom API ─────────────────────────────────────────────────────────
@@ -113,9 +121,12 @@ public class IllusionRoomManager : MonoBehaviour
         _badPathTriggered = true;
         _anxiausPaused = true;
 
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.StartGradualReduction(AnxietyManager.Instance.MildThreshold, 2f);
+
         // Silence voices — the bathroom is a momentary refuge
         SetVoicesVolume(0f);
-        Debug.Log("[IllusionRoom] BAD PATH: Player in bathroom — voices silenced, anxiety paused.");
+        Debug.Log("[IllusionRoom] BAD PATH: Player in bathroom — voices silenced, anxiety dropping to Mild.");
     }
 
     /// <summary>Phase 1: 30s elapsed — knocking starts, voices louder, anxiety resumes fast.</summary>
@@ -165,7 +176,7 @@ public class IllusionRoomManager : MonoBehaviour
 
         // Reduce anxiety — this was all in their head
         if (AnxietyManager.Instance != null)
-            AnxietyManager.Instance.ReduceAnxiety(anxietyReductionOnLightOn);
+            AnxietyManager.Instance.StartGradualReduction(0f, 2f);
 
         // Silence room-specific inner voices
         InnerVoiceManager.Instance?.SetRoom(InnerVoiceManager.RoomZone.None);

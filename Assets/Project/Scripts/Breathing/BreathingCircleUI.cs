@@ -52,6 +52,7 @@ public class BreathingCircleUI : MonoBehaviour
     [SerializeField] private Color exhaleColor   = new Color(0.3f, 0.9f, 0.5f, 0.8f);
     [SerializeField] private Color waitColor     = new Color(0.5f, 0.8f, 1f, 0.6f);
     [SerializeField] private Color successColor  = new Color(0.2f, 1f, 0.4f, 1f);
+    [SerializeField] private Color failColor     = new Color(1f, 0.2f, 0.2f, 1f);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  INSPECTOR — Streak
@@ -214,10 +215,6 @@ public class BreathingCircleUI : MonoBehaviour
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    //  SUCCESS / FAIL FEEDBACK
-    // ═══════════════════════════════════════════════════════════════════════
-
     public void OnCycleSuccess()
     {
         _isFlashing = true;
@@ -228,7 +225,10 @@ public class BreathingCircleUI : MonoBehaviour
 
     public void OnCycleFailed()
     {
-        // Circle smoothly returns to idle via UpdateCircleColor
+        _isFlashing = true;
+        _flashTimer = 0f;
+        if (circleImage != null)
+            circleImage.color = failColor;
     }
 
     void UpdateFlash()

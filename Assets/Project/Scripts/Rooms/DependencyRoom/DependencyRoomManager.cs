@@ -67,6 +67,7 @@ public class DependencyRoomManager : MonoBehaviour
     private bool _trashPaperRead;
     private bool _helpGoneHintShown;
     private Coroutine _gradualAnxietyRoutine;
+    private bool _hasCalledBack;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
     void Awake()
@@ -88,16 +89,14 @@ public class DependencyRoomManager : MonoBehaviour
     {
         if (CurrentStage >= Stage.PhoneBusy)
         {
+            if (_hasCalledBack) return;
+            _hasCalledBack = true;
+
             // Player tries to call back — line is busy
             Debug.Log("[DependencyRoom] Call-back attempt — number unavailable.");
             AudioManager.Instance?.PlayOneShot(SoundID.CallbackUnavailable);
 
-            if (!_helpGoneHintShown)
-            {
-                _helpGoneHintShown = true;
-                ObjectiveHintManager.Instance?.ShowHint(
-                    "المساعدة انقطعت , عليك الإعتماد على نفسك لإيجاد المفتاح", 10f);
-            }
+            StartCoroutine(ShowHelpGoneHintWithDelay(2f));
 
             if (!_trashPaperRead && _gradualAnxietyRoutine == null)
                 _gradualAnxietyRoutine = StartCoroutine(GradualAnxietyRoutine());
@@ -193,10 +192,6 @@ public class DependencyRoomManager : MonoBehaviour
     public void StopPhoneRinging()
     {
         AudioManager.Instance?.Stop(SoundID.CellphoneRing);
-
-        // Hide the canvas
-        if (phoneRingCanvas != null)
-            phoneRingCanvas.SetActive(false);
     }
 
     // ─── Coroutines ───────────────────────────────────────────────────────────
@@ -217,18 +212,22 @@ public class DependencyRoomManager : MonoBehaviour
 
         // ── Cut off immediately after the NPC clip ends ──
         AudioManager.Instance?.PlayOneShot(SoundID.CallCutOff);
+        Debug.Log("[DependencyRoom] Call cut off! Player is on their own.");
 
         if (AnxietyManager.Instance != null)
             AnxietyManager.Instance.AddAnxiety(anxietyOnCutOff);
-
-        CurrentStage = Stage.PhoneBusy;
-        Debug.Log("[DependencyRoom] Call cut off! Player is on their own.");
 
         // Player inner voice: "I should call them back"
         yield return new WaitForSeconds(1.5f);
         AudioManager.Instance?.PlayOneShot(SoundID.PlayerVoiceCallBack);
 
-        yield return new WaitForSeconds(1f);
+        // Wait a bit for the player voice to finish before allowing interaction
+        yield return new WaitForSeconds(2f);
+        
+        CurrentStage = Stage.PhoneBusy;
+        Debug.Log("[DependencyRoom] Player can now interact with the phone to attempt call back.");
+        
+        yield return new WaitForSeconds(0.5f);
         CurrentStage = Stage.WaitingForComputer;
         Debug.Log("[DependencyRoom] Waiting for player to access computer.");
     }
@@ -243,6 +242,17 @@ public class DependencyRoomManager : MonoBehaviour
             yield return null;
         }
         Debug.Log("[DependencyRoom] Gradual anxiety stopped.");
+    }
+
+    IEnumerator ShowHelpGoneHintWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (!_helpGoneHintShown)
+        {
+            _helpGoneHintShown = true;
+            ObjectiveHintManager.Instance?.ShowHint(
+                "المساعدة انقطعت , عليك الإعتماد على نفسك لإيجاد المفتاح", 10f);
+        }
     }
 
     // ─── Editor Helpers ───────────────────────────────────────────────────────

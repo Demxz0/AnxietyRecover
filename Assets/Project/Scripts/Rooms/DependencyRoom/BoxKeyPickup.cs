@@ -39,7 +39,10 @@ public class BoxKeyPickup : MonoBehaviour, IInteractable
         // Visually remove the key from the box
         gameObject.SetActive(false);
 
-        Debug.Log("[BoxKeyPickup] Key collected — icon shown on HUD.");
+        if (AnxietyManager.Instance != null)
+            AnxietyManager.Instance.StartGradualReduction(0f, 2f);
+
+        Debug.Log("[BoxKeyPickup] Key collected — icon shown on HUD, anxiety dropping to calm.");
     }
 
     public string GetPromptText() => "Take Key";

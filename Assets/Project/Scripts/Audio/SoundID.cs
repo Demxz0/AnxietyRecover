@@ -32,12 +32,17 @@ public enum SoundID
     Heartbeat,
     PeopleJudging,
 
-    // ── Voice ──────────────────────────────────────────────
-    // NpcVoice and NarratorVoice are handled via
-    // AudioManager.PlayNpcClip() / AudioManager.PlayNarratorClip()
-    // and do NOT have a SoundID because they take arbitrary clips.
-
     // ── Player Inner Voice ─────────────────────────────────
+    // These are NOT part of InnerVoiceManager — they are
+    // special one-shot narrative lines triggered by specific events.
+
     /// <summary>Player's inner voice after the NPC call cuts off: "I should call them back..."</summary>
     PlayerVoiceCallBack,
+
+    /// <summary>
+    /// Player's inner voice when entering the Illusion Room and hearing the people sounds:
+    /// "I have to hide in the bathroom" — a deliberate misdirection for the player.
+    /// Triggered by IllusionRoomManager on room entry.
+    /// </summary>
+    PlayerVoiceIllusionBathroom,
 }

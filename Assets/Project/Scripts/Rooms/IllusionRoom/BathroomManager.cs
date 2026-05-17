@@ -37,8 +37,9 @@ public class BathroomManager : MonoBehaviour
     [Tooltip("The DoorController on the bathroom door — closed and locked on entry, unlocked after panic.")]
     [SerializeField] private DoorController bathroomDoor;
 
-    [Tooltip("AudioSource for the door knocking/banging sound (loops).")]
-    [SerializeField] private AudioSource doorKnockSource;
+    // NOTE: doorKnockSource (AudioSource) was removed — door knock is now played via
+    // AudioManager.PlayLoop(SoundID.DoorKnock) to eliminate the duplicate AudioSource.
+    // Assign the DoorKnock clip in the AudioManager Inspector instead.
 
     [Header("Safe Window")]
     [Tooltip("Seconds of quiet refuge before the knocking starts.")]
@@ -91,7 +92,6 @@ public class BathroomManager : MonoBehaviour
             _doorOriginalPos = bathroomDoorTransform.localPosition;
 
         Debug.Log($"[DEBUG][Bathroom] Start. doorTransform={(bathroomDoorTransform!=null?bathroomDoorTransform.name:"NULL")}, " +
-                  $"doorKnockSource={(doorKnockSource!=null?"OK":"NULL")}, " +
                   $"safeWindow={safeWindowDuration}s, panicThreshold={panicTriggerAnxiety}");
     }
 
@@ -229,8 +229,8 @@ public class BathroomManager : MonoBehaviour
     void StartShaking()
     {
         _shakeActive = true;
-        if (doorKnockSource != null && !doorKnockSource.isPlaying)
-            doorKnockSource.Play();
+        // Play door knock via AudioManager (consolidated — no local AudioSource needed)
+        AudioManager.Instance?.PlayLoop(SoundID.DoorKnock);
     }
 
     void StopShaking()
@@ -238,6 +238,7 @@ public class BathroomManager : MonoBehaviour
         _shakeActive = false;
         if (bathroomDoorTransform != null)
             bathroomDoorTransform.localPosition = _doorOriginalPos;
-        if (doorKnockSource != null) doorKnockSource.Stop();
+        // Stop door knock via AudioManager
+        AudioManager.Instance?.Stop(SoundID.DoorKnock);
     }
 }
