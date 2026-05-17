@@ -25,17 +25,20 @@ public class RoomLightController : MonoBehaviour
     // ─── Colour Gradient ──────────────────────────────────────────────────────
 
     [Header("Colour Gradient (Low → High Anxiety)")]
-    [Tooltip("Colour at 0 % anxiety — clean white (blue is reserved for the Open Room only)")]
-    [SerializeField] private Color calmColor    = new Color(1.00f, 1.00f, 1.00f); // pure white
+    [Tooltip("Colour at 0 % anxiety (Calm) — soft warm off-white (blue reserved for Open Room)")]
+    [SerializeField] private Color calmColor    = new Color(1.00f, 1.00f, 0.95f);
 
-    [Tooltip("Colour at 40 % anxiety — soft warm white")]
-    [SerializeField] private Color neutralColor = new Color(1.00f, 0.90f, 0.70f); // warm white
+    [Tooltip("Colour at 20 % anxiety (Mild) — soft warm peach")]
+    [SerializeField] private Color mildColor    = new Color(1.00f, 0.90f, 0.78f);
 
-    [Tooltip("Colour at 70 % anxiety — amber tension")]
-    [SerializeField] private Color highColor    = new Color(1.00f, 0.55f, 0.10f); // amber
+    [Tooltip("Colour at 40 % anxiety (High) — soft desaturated peach/amber")]
+    [SerializeField] private Color neutralColor = new Color(0.98f, 0.75f, 0.55f);
 
-    [Tooltip("Colour at 100 % anxiety — deep anxious orange (GDD)")]
-    [SerializeField] private Color panicColor   = new Color(1.00f, 0.20f, 0.00f); // deep orange-red
+    [Tooltip("Colour at 65 % anxiety (Extreme) — soft warm orange")]
+    [SerializeField] private Color highColor    = new Color(0.95f, 0.58f, 0.36f);
+
+    [Tooltip("Colour at 85 % anxiety (Panic) — warm terracotta / desaturated deep orange")]
+    [SerializeField] private Color panicColor   = new Color(0.90f, 0.40f, 0.22f);
 
     // ─── Colour Transition ────────────────────────────────────────────────────
 
@@ -205,23 +208,31 @@ public class RoomLightController : MonoBehaviour
     // ─── Colour Mapping ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Three-segment gradient:
-    ///   0.00 → 0.40  : white       → warm white   (normal, slightly uneasy)
-    ///   0.40 → 0.70  : warm white  → amber        (tension building)
-    ///   0.70 → 1.00  : amber       → deep orange  (overwhelm / panic)
+    /// Five-segment gradient:
+    ///   0.00 → 0.20  : Calm        → Mild (soft warm off-white to peach)
+    ///   0.20 → 0.40  : Mild        → High (peach to desaturated amber)
+    ///   0.40 → 0.65  : High        → Extreme (amber to warm orange)
+    ///   0.65 → 0.85  : Extreme     → Panic (warm orange to warm terracotta)
+    ///   0.85 → 1.00  : Panic (warm terracotta)
     ///
     /// NOTE: Blue is NOT used in this gradient.
     /// Blue is reserved exclusively for the final Open Room.
     /// </summary>
     private Color EvaluateColor(float t)
     {
+        if (t <= 0.20f)
+            return Color.Lerp(calmColor, mildColor, t / 0.20f);
+
         if (t <= 0.40f)
-            return Color.Lerp(calmColor,    neutralColor, t / 0.40f);
+            return Color.Lerp(mildColor, neutralColor, (t - 0.20f) / 0.20f);
 
-        if (t <= 0.70f)
-            return Color.Lerp(neutralColor, highColor,    (t - 0.40f) / 0.30f);
+        if (t <= 0.65f)
+            return Color.Lerp(neutralColor, highColor, (t - 0.40f) / 0.25f);
 
-        return Color.Lerp(highColor,    panicColor,   (t - 0.70f) / 0.30f);
+        if (t <= 0.85f)
+            return Color.Lerp(highColor, panicColor, (t - 0.65f) / 0.20f);
+
+        return panicColor;
     }
 
     // ─── Flicker ──────────────────────────────────────────────────────────────
@@ -285,28 +296,31 @@ public class RoomLightController : MonoBehaviour
         {
             case RoomPreset.OpenRoom:
                 calmColor        = new Color(0.55f, 0.80f, 1.00f); // calm sky-blue
+                mildColor        = new Color(0.65f, 0.85f, 1.00f); // soft light blue
                 neutralColor     = new Color(0.75f, 0.90f, 1.00f); // light blue-white
-                highColor        = new Color(1.00f, 0.75f, 0.40f); // soft amber (rare)
-                panicColor       = new Color(1.00f, 0.45f, 0.10f); // muted orange (still calmer)
+                highColor        = new Color(0.90f, 0.85f, 0.80f); // soft beige
+                panicColor       = new Color(0.95f, 0.80f, 0.70f); // soft warm peach
                 flickerThreshold = 0.85f;
                 flickerAmplitude = 0.05f;
                 lerpSpeed        = 0.8f;
                 break;
 
             case RoomPreset.LivingRoom:
-                calmColor        = new Color(1.00f, 1.00f, 1.00f); // pure white
-                neutralColor     = new Color(1.00f, 0.90f, 0.70f); // warm white
-                highColor        = new Color(1.00f, 0.55f, 0.10f); // amber
-                panicColor       = new Color(1.00f, 0.20f, 0.00f); // deep orange
+                calmColor        = new Color(1.00f, 1.00f, 0.95f); // warm off-white
+                mildColor        = new Color(1.00f, 0.90f, 0.78f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.75f, 0.55f); // soft desaturated peach/amber
+                highColor        = new Color(0.95f, 0.58f, 0.36f); // soft warm orange
+                panicColor       = new Color(0.90f, 0.40f, 0.22f); // warm terracotta / desaturated deep orange
                 flickerThreshold = 0.65f;
                 flickerAmplitude = 0.20f;
                 break;
 
             case RoomPreset.Bedroom:
                 calmColor        = new Color(0.95f, 0.95f, 0.90f); // soft off-white
-                neutralColor     = new Color(1.00f, 0.85f, 0.65f); // dim warm
-                highColor        = new Color(1.00f, 0.52f, 0.08f); // amber-orange
-                panicColor       = new Color(1.00f, 0.18f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.88f, 0.75f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.72f, 0.52f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.55f, 0.33f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.38f, 0.20f); // warm terracotta / desaturated deep orange
                 flickerThreshold = 0.55f;
                 flickerAmplitude = 0.30f;
                 lerpSpeed        = 1.0f;
@@ -314,9 +328,10 @@ public class RoomLightController : MonoBehaviour
 
             case RoomPreset.IllusionRoom:
                 calmColor        = new Color(1.00f, 0.98f, 0.92f); // near-white (post-reveal)
-                neutralColor     = new Color(1.00f, 0.88f, 0.65f); // warm
-                highColor        = new Color(1.00f, 0.52f, 0.08f); // orange
-                panicColor       = new Color(1.00f, 0.18f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.90f, 0.76f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.74f, 0.54f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.56f, 0.35f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.38f, 0.20f); // warm terracotta
                 flickerThreshold = 0.45f;
                 flickerAmplitude = 0.45f;
                 flickerInterval  = 0.05f;
@@ -326,9 +341,10 @@ public class RoomLightController : MonoBehaviour
 
             case RoomPreset.LoopRoom:
                 calmColor        = new Color(1.00f, 1.00f, 0.95f); // near-white
-                neutralColor     = new Color(1.00f, 0.88f, 0.62f); // warm
-                highColor        = new Color(1.00f, 0.52f, 0.08f); // amber
-                panicColor       = new Color(1.00f, 0.18f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.90f, 0.76f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.74f, 0.54f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.56f, 0.35f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.38f, 0.20f); // warm terracotta
                 flickerThreshold = 0.70f;
                 flickerAmplitude = 0.15f;
                 lerpSpeed        = 0.6f;
@@ -336,9 +352,10 @@ public class RoomLightController : MonoBehaviour
 
             case RoomPreset.Bathroom:
                 calmColor        = new Color(1.00f, 1.00f, 1.00f); // pure white (clinical)
-                neutralColor     = new Color(1.00f, 0.92f, 0.75f); // warm shift
-                highColor        = new Color(1.00f, 0.60f, 0.15f); // amber
-                panicColor       = new Color(1.00f, 0.22f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.92f, 0.78f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.76f, 0.56f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.58f, 0.36f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.40f, 0.22f); // warm terracotta
                 flickerThreshold = 0.60f;
                 flickerAmplitude = 0.35f;
                 flickerInterval  = 0.04f;
@@ -346,9 +363,10 @@ public class RoomLightController : MonoBehaviour
 
             case RoomPreset.Hallway:
                 calmColor        = new Color(0.95f, 0.95f, 0.95f); // near-white
-                neutralColor     = new Color(1.00f, 0.88f, 0.65f); // warm white
-                highColor        = new Color(0.95f, 0.52f, 0.08f); // amber
-                panicColor       = new Color(1.00f, 0.20f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.90f, 0.76f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.74f, 0.54f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.56f, 0.35f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.38f, 0.20f); // warm terracotta
                 flickerThreshold = 0.50f;
                 flickerAmplitude = 0.40f;
                 flickerInterval  = 0.06f;
@@ -357,9 +375,10 @@ public class RoomLightController : MonoBehaviour
 
             case RoomPreset.Kitchen:
                 calmColor        = new Color(1.00f, 1.00f, 0.95f); // near-white
-                neutralColor     = new Color(1.00f, 0.92f, 0.72f); // warm white
-                highColor        = new Color(1.00f, 0.55f, 0.10f); // amber
-                panicColor       = new Color(1.00f, 0.20f, 0.00f); // deep orange
+                mildColor        = new Color(1.00f, 0.90f, 0.76f); // soft warm peach
+                neutralColor     = new Color(0.98f, 0.74f, 0.54f); // soft desaturated amber
+                highColor        = new Color(0.94f, 0.56f, 0.35f); // soft warm orange
+                panicColor       = new Color(0.88f, 0.38f, 0.20f); // warm terracotta
                 flickerThreshold = 0.65f;
                 flickerAmplitude = 0.22f;
                 break;

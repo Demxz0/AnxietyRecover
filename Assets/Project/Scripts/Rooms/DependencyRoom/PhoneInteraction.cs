@@ -9,7 +9,10 @@ public class PhoneInteraction : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (DependencyRoomManager.Instance != null)
+        {
+            if (DependencyRoomManager.Instance.HasCalledBack) return;
             DependencyRoomManager.Instance.OnPhonePickedUp();
+        }
         else
             Debug.LogWarning("[PhoneInteraction] DependencyRoomManager not found in scene!");
     }
@@ -17,6 +20,7 @@ public class PhoneInteraction : MonoBehaviour, IInteractable
     public string GetPromptText()
     {
         if (DependencyRoomManager.Instance == null) return "Pick Up Phone";
+        if (DependencyRoomManager.Instance.HasCalledBack) return "";
 
         return DependencyRoomManager.Instance.CurrentStage >= DependencyRoomManager.Stage.PhoneBusy
             ? "Call Back"

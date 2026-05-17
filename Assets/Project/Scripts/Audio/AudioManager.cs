@@ -168,6 +168,10 @@ public class AudioManager : MonoBehaviour
     [Tooltip("AudioSource for looping sounds (breathing heavy, ringing, etc.).")]
     [SerializeField] private AudioSource loopSource;
 
+    // Public properties to expose specific clip and source reference safely
+    public AudioClip PeopleJudgingClip => peopleJudgingClip;
+    public AudioSource SfxSource => sfxSource;
+
     [Tooltip("Dedicated AudioSource for heartbeat loop during panic (separate so it can overlap breathing).")]
     [SerializeField] private AudioSource heartbeatLoopSource;
 
@@ -291,6 +295,13 @@ public class AudioManager : MonoBehaviour
         sfxSource.PlayOneShot(clip, volume);
     }
 
+    /// <summary>Gets the duration in seconds of a specific SoundID clip.</summary>
+    public float GetClipLength(SoundID id)
+    {
+        AudioClip clip = GetClip(id);
+        return clip != null ? clip.length : 0f;
+    }
+
     /// <summary>
     /// Starts a looping sound on the loop AudioSource.
     /// Only one loop can be active at a time on the loop source.
@@ -333,6 +344,16 @@ public class AudioManager : MonoBehaviour
         {
             heartbeatLoopSource.Stop();
             heartbeatLoopSource.volume = _defaultHeartbeatVol;
+        }
+    }
+
+    /// <summary>Stops all looping environmental sounds (like door knocks or judging voices).</summary>
+    public void StopAllEnvironmentalLoops()
+    {
+        StopLoop();
+        if (IllusionRoomManager.Instance != null)
+        {
+            IllusionRoomManager.Instance.StopVoices();
         }
     }
 

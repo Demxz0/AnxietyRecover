@@ -314,12 +314,8 @@ public class LoopRoomManager : MonoBehaviour
         if (ambientSource != null)
             ambientSource.Stop();
 
-        // Unlock the kitchen door so the player can leave
-        if (kitchenDoor != null)
-        {
-            kitchenDoor.Unlock();
-            Debug.Log("[ExpandingRoom] Kitchen door unlocked.");
-        }
+        // Unlock the kitchen door so the player can leave ONLY after the narrator finishes
+        StartCoroutine(UnlockDoorWhenNarratorFinishes());
 
         GameStateManager.Instance?.CompleteLoopRoom();
 
@@ -327,6 +323,23 @@ public class LoopRoomManager : MonoBehaviour
             AnxietyManager.Instance.StartGradualReduction(0f, 2f);
 
         Debug.Log("[ExpandingRoom] Effect fully reversed — room COMPLETE!");
+    }
+
+    private System.Collections.IEnumerator UnlockDoorWhenNarratorFinishes()
+    {
+        if (NarrativeManager.Instance != null)
+        {
+            while (NarrativeManager.Instance.IsShowing)
+            {
+                yield return null;
+            }
+        }
+
+        if (kitchenDoor != null)
+        {
+            kitchenDoor.Unlock();
+            Debug.Log("[ExpandingRoom] Kitchen door unlocked after narrator finished speaking.");
+        }
     }
 
 #if UNITY_EDITOR

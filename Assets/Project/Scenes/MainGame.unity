@@ -1228,6 +1228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -1379,6 +1380,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -8818,6 +8820,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -9379,6 +9382,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -13012,6 +13016,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -13048,7 +13053,7 @@ RectTransform:
   m_GameObject: {fileID: 544910821}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.16, y: 2.16, z: 2.16}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1649630218}
@@ -13929,6 +13934,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -18416,6 +18422,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -18676,6 +18683,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -23285,6 +23293,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -29092,6 +29101,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}
@@ -37810,6 +37820,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RoomLightController
   roomName: Room
   calmColor: {r: 1, g: 1, b: 1, a: 1}
+  mildColor: {r: 1, g: 0.9, b: 0.78, a: 1}
   neutralColor: {r: 1, g: 0.9, b: 0.7, a: 1}
   highColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   panicColor: {r: 1, g: 0.2, b: 0, a: 1}

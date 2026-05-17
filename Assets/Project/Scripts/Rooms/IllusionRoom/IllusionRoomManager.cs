@@ -71,12 +71,39 @@ public class IllusionRoomManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+
+        // Fallback: if voicesSource is not assigned in the Inspector, find or create one dynamically
+        if (voicesSource == null)
+        {
+            voicesSource = GetComponent<AudioSource>();
+            if (voicesSource == null)
+            {
+                GameObject voiceGO = new GameObject("JudgingVoicesAudioSource");
+                voiceGO.transform.SetParent(transform);
+                voicesSource = voiceGO.AddComponent<AudioSource>();
+            }
+        }
     }
 
     void Start()
     {
         SetSilhouettes(false);
         SetVoicesVolume(0f);
+
+        // Dynamically assign the PeopleJudging clip and copy SFX mixer routing
+        if (voicesSource != null)
+        {
+            if (AudioManager.Instance != null)
+            {
+                if (voicesSource.clip == null)
+                    voicesSource.clip = AudioManager.Instance.PeopleJudgingClip;
+                
+                if (AudioManager.Instance.SfxSource != null)
+                    voicesSource.outputAudioMixerGroup = AudioManager.Instance.SfxSource.outputAudioMixerGroup;
+            }
+            voicesSource.loop = true;
+            voicesSource.playOnAwake = false;
+        }
 
         if (startOnAwake) OnPlayerEntersRoom();
     }
@@ -141,12 +168,22 @@ public class IllusionRoomManager : MonoBehaviour
     }
 
     /// <summary>Called by BathroomManager when player exits bathroom after panic.</summary>
-    public void OnPlayerExitsBathroom()
+    public void OnPlayerExitsBathroom(bool postPanic = false)
     {
         _anxiausPaused = false;
         // Voices return to normal bedroom level
         SetVoicesVolume(voicesNormalVolume);
-        Debug.Log("[IllusionRoom] Player exited bathroom — voices back to normal.");
+
+        if (postPanic)
+        {
+            // Slow down the anxiety rate permanently after a panic attack in the bathroom
+            anxietyPerSecond = 0.5f;
+            Debug.Log("[IllusionRoom] Post-panic bedroom rate set slower: " + anxietyPerSecond);
+        }
+        else
+        {
+            Debug.Log("[IllusionRoom] Player exited bathroom — voices back to normal.");
+        }
     }
 
     // Keep old name as alias for backwards compat
@@ -209,7 +246,7 @@ public class IllusionRoomManager : MonoBehaviour
         if (!voicesSource.isPlaying) voicesSource.Play();
     }
 
-    void StopVoices()
+    public void StopVoices()
     {
         if (voicesSource != null) voicesSource.Stop();
     }

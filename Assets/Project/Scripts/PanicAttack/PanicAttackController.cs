@@ -283,6 +283,7 @@ public class PanicAttackController : MonoBehaviour
         ApplyEffects(0f);
         SetBlackoutAlpha(1f);
         AudioManager.Instance?.StopPanicAudio();
+        AudioManager.Instance?.StopAllEnvironmentalLoops();
 
         Debug.Log("[PanicAttackController] Character unconscious...");
 

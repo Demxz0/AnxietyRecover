@@ -51,6 +51,12 @@ public class NarrativeManager : MonoBehaviour
     private Queue<QueuedEntry> _queue = new Queue<QueuedEntry>();
     private bool _isShowing;
 
+    /// <summary>True if a narrative entry is currently being displayed or spoken.</summary>
+    public bool IsShowing => _isShowing;
+
+    /// <summary>Fired when the current entry and all queued entries have finished displaying.</summary>
+    public event System.Action OnNarrativeFinished;
+
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     void Awake()
@@ -135,6 +141,7 @@ public class NarrativeManager : MonoBehaviour
         _queue.Clear();
         _isShowing = false;
         StopAllCoroutines();
+        OnNarrativeFinished?.Invoke();
     }
 
     // ─── Private ──────────────────────────────────────────────────────────────
@@ -178,6 +185,11 @@ public class NarrativeManager : MonoBehaviour
         {
             QueuedEntry next = _queue.Dequeue();
             StartCoroutine(ShowRoutine(next.entry, next.anchor));
+        }
+        else
+        {
+            // The queue is empty, and _isShowing is false. We are completely done.
+            OnNarrativeFinished?.Invoke();
         }
     }
 

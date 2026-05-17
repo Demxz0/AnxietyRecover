@@ -126,7 +126,14 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
         yield return StartCoroutine(Phase2_TextSequence());
 
         Debug.Log("[ExitDoor] Ending complete — loading MainMenu.");
-        SceneManager.LoadScene(mainMenuSceneName);
+        try
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene(mainMenuSceneName);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[ExitDoor] Failed to load main menu scene '{mainMenuSceneName}'. Ensure it is added to Build Settings! Error: {e.Message}");
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -214,6 +221,7 @@ public class ExitDoorInteraction : MonoBehaviour, IInteractable
         if (text == null) yield break;
 
         text.gameObject.SetActive(true);
+        text.transform.SetAsLastSibling(); // Ensure text renders ABOVE the white fade image
 
         float duration  = fadeIn ? textFadeInDuration : textFadeOutDuration;
         float startAlpha = fadeIn ? 0f : 1f;

@@ -151,13 +151,19 @@ public class BathroomManager : MonoBehaviour
         if (_bathroomRoutine != null) { StopCoroutine(_bathroomRoutine); _bathroomRoutine = null; }
         StopShaking();
 
-        IllusionRoomManager.Instance?.OnPlayerExitsBathroom();
+        IllusionRoomManager.Instance?.OnPlayerExitsBathroom(_panicFired);
     }
 
     // ─── Main Routine ─────────────────────────────────────────────────────────
 
     IEnumerator BathroomRoutine()
     {
+        // Show inner-voice floating text immediately when player hides in the bathroom
+        if (bathroomWaitingEntry != null && NarrativeManager.Instance != null)
+        {
+            NarrativeManager.Instance.Show(bathroomWaitingEntry, textAnchor);
+        }
+
         // Brief delay so the player is fully inside before door closes
         yield return new WaitForSeconds(doorCloseDelay);
         if (bathroomDoor != null) { bathroomDoor.ForceClose(); bathroomDoor.Lock(); }
@@ -169,18 +175,8 @@ public class BathroomManager : MonoBehaviour
 
         if (!_playerInBathroom) { Debug.Log("[DEBUG][Bathroom] Player left during safe window — routine ends."); yield break; }
 
-        // Show inner-voice floating text after a short pause — the moment of anxious stillness
-        if (bathroomWaitingEntry != null && NarrativeManager.Instance != null)
-        {
-            yield return new WaitForSeconds(waitingTextDelay);
-            if (_playerInBathroom) // still in bathroom after the delay
-                NarrativeManager.Instance.Show(bathroomWaitingEntry, textAnchor);
-        }
-
         // Wait out the rest of the safe window
-        float textWait = (bathroomWaitingEntry != null) ? waitingTextDelay : 0f;
-        float finalRemaining = Mathf.Max(0f, remaining - textWait);
-        yield return new WaitForSeconds(finalRemaining);
+        yield return new WaitForSeconds(remaining);
 
         if (!_playerInBathroom) { Debug.Log("[DEBUG][Bathroom] Player left during safe window — routine ends."); yield break; }
 

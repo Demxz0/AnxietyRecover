@@ -99,7 +99,18 @@ public class OpenRoomManager : MonoBehaviour
     // ─── Lights & Ending Logic ───────────────────────────────────────────────
     void HandleAllRoomsCompleted()
     {
-        // Fires the moment all rooms are finished — trigger immediately
+        // Wait until the previous narrator entry (e.g. Illusion Room completion) finishes speaking
+        StartCoroutine(HandleAllRoomsCompletedRoutine());
+    }
+
+    private System.Collections.IEnumerator HandleAllRoomsCompletedRoutine()
+    {
+        if (NarrativeManager.Instance != null)
+        {
+            while (NarrativeManager.Instance.IsShowing)
+                yield return null;
+        }
+
         TriggerEndingLogic();
     }
 
@@ -140,6 +151,13 @@ public class OpenRoomManager : MonoBehaviour
             NarrativeManager.Instance.Show(narratorThirdEntry, textAnchor);
         else if (narratorThirdEntry == null)
             Debug.LogWarning("[OpenRoom] narratorThirdEntry not assigned — Narrator 3rd speech won't play.");
+
+        // 5. Start the Open Room final music
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMusicState(AudioManager.MusicState.Open);
+            Debug.Log("[OpenRoom] Final Open Room music started.");
+        }
     }
 
 #if UNITY_EDITOR

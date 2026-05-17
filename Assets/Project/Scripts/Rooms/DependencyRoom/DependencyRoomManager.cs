@@ -35,6 +35,7 @@ public class DependencyRoomManager : MonoBehaviour
     }
 
     public Stage CurrentStage { get; private set; } = Stage.WaitingForPhonePickup;
+    public bool HasCalledBack => _hasCalledBack;
 
     // ─── Inspector ───────────────────────────────────────────────────────────
     [Header("NPC Audio Clip")]
@@ -96,7 +97,8 @@ public class DependencyRoomManager : MonoBehaviour
             Debug.Log("[DependencyRoom] Call-back attempt — number unavailable.");
             AudioManager.Instance?.PlayOneShot(SoundID.CallbackUnavailable);
 
-            StartCoroutine(ShowHelpGoneHintWithDelay(2f));
+            float callbackLength = AudioManager.Instance != null ? AudioManager.Instance.GetClipLength(SoundID.CallbackUnavailable) : 2f;
+            StartCoroutine(ShowHelpGoneHintWithDelay(callbackLength));
 
             if (!_trashPaperRead && _gradualAnxietyRoutine == null)
                 _gradualAnxietyRoutine = StartCoroutine(GradualAnxietyRoutine());
